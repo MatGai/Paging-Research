@@ -2,7 +2,7 @@
 #define UTIL_H
 
 #include "boot.h"
-#include "general.h"
+#include <scouse/archx64/intrinsics.h>
 
 EFI_STATUS
 BLAPI
@@ -19,7 +19,7 @@ BlDbgBreak(
 )
 {
 #ifdef _DEBUG_IDA
-    _int3( );
+    _scouse_debugbreak();
 #endif // _DEBUG_IDA
 };
 

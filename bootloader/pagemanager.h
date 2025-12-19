@@ -4,7 +4,6 @@
 #include <Library/BaseMemoryLib.h>
 
 #include "boot.h"
-#include "general.h"
 #include "pe.h"
 
 #ifdef __cplusplus

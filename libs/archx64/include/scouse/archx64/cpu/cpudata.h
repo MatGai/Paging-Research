@@ -1,0 +1,40 @@
+#ifndef ARCHX64_CPUDATA_H
+#define ARCHX64_CPUDATA_H
+
+#include <scouse/shared/typedefs.h>
+
+typedef enum _CPU_CACHE_TYPE
+{
+	CPU_FEATURE_CACHE_NULL = 0,
+	CPU_FEATURE_CACHE_DATA, 
+	CPU_FEATURE_CACHE_INSTRUCTION,
+	CPU_FEATURE_CACHE_TLB,
+	CPU_FEATURE_CACHE_STLB,
+	CPU_FEATURE_CACHE_PREFETCH
+
+} CPU_CACHE_TYPE;
+
+typedef struct _CACHE_INFO
+{
+	INT16 Level;
+	CPU_CACHE_TYPE CacheType;
+	LONG32 CacheSize;
+	LONG32 Ways;
+	LONG32 LineSize;
+	LONG32 TlbEntries;
+	LONG32 Partitioning;
+
+} CACHE_INFO, *PCACHE_INFO;
+
+#define CPU_MAX_CACHE_LEVEL ( 10 )
+
+typedef struct _CPU_CACHE_INFO
+{
+	LONG32 Size;
+	CACHE_INFO Levels[ CPU_MAX_CACHE_LEVEL ]
+}CPU_CACHE_INFO, *PCPU_CACHE_INFO;
+
+
+#define CPU_AMD_STANDARD_FUNCTIONS ( 0x000000000000FFFFull )  // Amd standard functions to query features such as AVX and FMA
+
+#endif // !ARCHX64_CPUDATA_H

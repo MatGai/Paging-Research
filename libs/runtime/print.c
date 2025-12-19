@@ -1,24 +1,24 @@
 
 #include <scouse/runtime/string.h>
 
-typedef unsigned __int64 (*__WriteConsole)( unsigned short* );
+typedef ULONG64 (*__WriteConsole)( PWCHAR );
 
-unsigned int 
+ULONG32 
 ConsoleWrite(
-	unsigned short* str
+	PWCHAR str
 )
 {
 	return &str;
 }
 
-unsigned __int64 
+ULONG64 
 putc(
 	__WriteConsole WriteConsole,
-	unsigned short character
+	WCHAR character
 
 )
 {
-	unsigned short tmp[2] = { character, '\0' };
+	WCHAR tmp[2] = { character, '\0' };
 
 	if (character == L'\n')
 	{
@@ -33,7 +33,7 @@ putc(
 	return 0;
 }
 
-unsigned __int64
+ULONG64
 printf(
 	unsigned __int16* Format,
 	...
@@ -44,7 +44,7 @@ printf(
 }
 
 
-void 
+VOID
 print(
 
 )

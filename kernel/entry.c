@@ -1,3 +1,4 @@
+
 #include "msr.h"
 
 typedef struct _EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL;
@@ -243,35 +244,4 @@ RunTlbJumpTest(
     ConOut->Print(ConOut, L"\r\n");
 
     ConOut->Print(ConOut, L"[TLB] Done.\r\n\r\n");
-}
-
-void
-RunPmcSanityTest(EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL* ConOut)
-{
-    unsigned __int64 Cycles, Instructions;
-    volatile unsigned int i;
-
-    ConOut->Print(ConOut, L"\r\n[PMC] Sanity test...\r\n");
-
-    KrnlMsrAmdPmcConfigure(0, 0x76u, 0x00u, AMD_PMC_OSUSER_ALL);
-    KrnlMsrAmdPmcConfigure(1, 0xC0u, 0x00u, AMD_PMC_OSUSER_ALL);
-
-    for (i = 0; i < 1000000u; ++i)
-    {
-        __nop(); 
-    }
-
-    Cycles = KrnlMsrAmdPmcRead(0);
-    Instructions = KrnlMsrAmdPmcRead(1);
-
-    KrnlMsrAmdPmcDisable(0);
-    KrnlMsrAmdPmcDisable(1);
-
-    ConOut->Print(ConOut, L"[PMC] Cycles not in halt: ");
-    ConOutPrintDecimal(ConOut, Cycles);
-    ConOut->Print(ConOut, L"\r\n");
-
-    ConOut->Print(ConOut, L"[PMC] Retired instructions: ");
-    ConOutPrintDecimal(ConOut, Instructions);
-    ConOut->Print(ConOut, L"\r\n\r\n");
 }

@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="cpuinfo.c">
+    <ClCompile Include="cpu\cpuinfo.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="msr.c">
@@ -24,16 +24,31 @@
     <ClCompile Include="paging.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="cpu\cpudata.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cpu\cpuid.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\scouse\archx64\cpuinfo.h">
+    <ClInclude Include="include\scouse\archx64\intrinsics.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\scouse\archx64\instrinsics.h">
+    <ClInclude Include="include\scouse\archx64\cpu\cpuid.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\scouse\archx64\cpu\cpudata.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\scouse\archx64\special.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <NASM Include="asm\intrinsics.nasm" />
+    <NASM Include="asm\special.asm">
+      <Filter>Source Files</Filter>
+    </NASM>
   </ItemGroup>
 </Project>

@@ -1,9 +1,9 @@
-#include "control.h"
 #include "filesystem.h"
 #include "image.h"
 #include "pagemanager.h"
-#include "special.h"
 #include "status.h"
+#include <scouse/shared/cpuinfo.h>
+#include <scouse/archx64/intrinsics.h>
 
 typedef struct _BOOT_INFO
 {
@@ -438,7 +438,13 @@ UefiMain(
 
     int ReturnValue = KEntry( gST->ConOut, NULL );
 
-    Print( L"Kernel returned %d", ReturnValue );
+    Print( L"Kernel returned %d\n", ReturnValue );
+
+    CPUINFO CpuInfo; 
+    GetCpuInfo( &CpuInfo );
+
+    Print(L"Cpu info: %a, %a\r\n", CpuInfo.Vendor, CpuInfo.Brand);
+
 
 
     getc( );
@@ -464,9 +470,7 @@ InitalSetup(
         return err;
     }
 
-    DBG_INFO( L"handle-> %p", LoadedIamge->ImageBase );
-
-    gST->ConOut->ClearScreen( gST->ConOut );
+    DBG_INFO( L"handle-> %p\n", LoadedIamge->ImageBase );
 
     EFI_TIME time;
     gRT->GetTime( &time, NULL );
@@ -479,6 +483,14 @@ InitalSetup(
            time.Minute,
            time.Second,
            time.Nanosecond );
+
+    BlDbgBreak();
+
+    CPUINFO CpuInfo;
+
+    GetCpuInfo( &CpuInfo );
+
+    Print(L"Cpu info: %a, %a\n", CpuInfo.Vendor, CpuInfo.Brand);
 
     return EFI_SUCCESS;
 };

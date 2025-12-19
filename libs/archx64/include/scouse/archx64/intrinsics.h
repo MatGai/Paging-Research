@@ -1,60 +1,77 @@
 #ifndef ARCHX64_INTRINSICS_H
 #define ARCHX64_INTRINSICS_H
 
+#include <scouse/shared/typedefs.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-	void
+	VOID
 	_scouse_cpuid(
-		__int32,
-		__int32*
+		ULONG32, 
+		ULONG32*
 	);
 
-	unsigned __int64
+	ULONG64
 	_scouse_readmsr(
-		unsigned __int32,
-		unsigned __int32*
+		ULONG32,
+		ULONG32*
 	);
 
-	unsigned __int64
+	ULONG64
 	_scouse_readcr0(
-		void
+		VOID
 	);
 
-	unsigned __int64
+	ULONG64
 	_scouse_writecr0(
-		unsigned __int64
+		ULONG64
 	);
 
-	unsigned __int64
+	ULONG64
 	_scouse_readcr2(
-		void
+		VOID
 	);
 
-	unsigned __int64
+	ULONG64
 	_scouse_writecr2(
-		unsigned __int64
+		ULONG64
 	);
 
-	unsigned __int64
+	ULONG64
 	_scouse_readcr3(
-		void
+		VOID
 	);
 
-	unsigned __int64
+	ULONG64
 	_scouse_writecr3(
-		unsigned __int64
+		ULONG64
 	);
 
-	unsigned __int64
+	ULONG64
 	_scouse_readcr4(
-		void
+		VOID
 	);
 
-	unsigned __int64
+	ULONG64
 	_scouse_writecr4(
-		unsigned __int64
+		VOID
+	);
+
+	ULONG64	
+	 _scouse_readeflags(
+		VOID
+	);
+
+	VOID
+	_scouse_writeeflags(
+		ULONG64
+	);
+
+	VOID
+	_scouse_debugbreak(
+		VOID
 	);
 
 #ifdef __cplusplus

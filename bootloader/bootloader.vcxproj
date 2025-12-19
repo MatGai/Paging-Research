@@ -406,7 +406,6 @@
     <MASM Include="control.masm">
       <FileType>Document</FileType>
     </MASM>
-    <ClCompile Include="registers.h" />
     <ClCompile Include="UefiMain.c">
       <SuppressStartupBanner Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</SuppressStartupBanner>
       <SupportJustMyCode Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</SupportJustMyCode>
@@ -420,26 +419,12 @@
     <ClInclude Include="control.h" />
     <ClInclude Include="efi.h" />
     <ClInclude Include="filesystem.h" />
-    <ClInclude Include="general.h" />
     <ClInclude Include="image.h" />
     <ClInclude Include="pagemanager.h" />
     <ClInclude Include="pe.h" />
-    <ClInclude Include="special.h" />
     <ClInclude Include="status.h" />
     <ClInclude Include="stdint.h" />
     <ClInclude Include="util.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <MASM Include="general.masm">
-      <FileType>Document</FileType>
-      <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GenerateDebugInformation>
-      <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='IDA|x64'">false</GenerateDebugInformation>
-    </MASM>
-  </ItemGroup>
-  <ItemGroup>
-    <MASM Include="special.masm">
-      <FileType>Document</FileType>
-    </MASM>
   </ItemGroup>
   <ItemGroup>
     <MASM Include="pagemanager.masm">

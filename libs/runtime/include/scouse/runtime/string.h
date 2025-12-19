@@ -1,71 +1,71 @@
 #ifndef RT_STRING_H
 #define RT_STRING_H
 
-#include <stddef.h>
+#include <scouse/shared/typedefs.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-static_assert( sizeof(long) == 4, "Long is not 4 bytes");
+static_assert( sizeof( LONG32 ) == 4, "Long is not 4 bytes");
 
 //
 //    MEMORY  
 //
 
-void* 
+PVOID 
 memcpy(
-    void* dst,
-    const void* src,
-    unsigned long long sz
+    PVOID dst,
+    CONST PVOID src,
+    ULONG64 sz
 );
 
-void*
+PVOID
 memset(
-    void* dst,
-    int v,
-    unsigned long long sz
+    PVOID dst,
+    LONG32 v,
+    ULONG64 sz
 );
 
-int
+LONG32
 memcmp(
-    const void* dst,
-    const void* src,
-    unsigned long long sz
+    CONST PVOID dst,
+    CONST PVOID src,
+    ULONG64 sz
 );
 
 //
 //   STRING  
 //
 
-char*
+PSTR
 strchr(
-    const char* src,
-    int c
+    PCSTR src,
+    LONG32 c
 );
 
-int
+LONG32
 strcmp(
-    const char* s0,
-    const char* s1
+    PCSTR s0,
+    PCSTR s1
 );
 
-char*
+PSTR
 strlcpy(
-    char* dst,
-    const char* src,
-    unsigned long long sz
+    PSTR dst,
+    PCSTR src,
+    ULONG64 sz
 );
 
-unsigned long long
+ULONG64
 strlen(
-    const char* str
+    PCSTR str
 );
 
-char*
+PSTR
 strstr(
-    const char* s0,
-    const char* s1
+    PCSTR s0,
+    PCSTR s1
 );
 
 #ifdef __cplusplus

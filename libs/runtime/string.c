@@ -1,15 +1,16 @@
 #include <scouse/runtime/string.h>
 
-void*
+
+PVOID
 memcpy(
-    void* dst,
-    const void* src,
-    unsigned long long sz
+    PVOID dst,
+    CONST PVOID src,
+    ULONG64 sz
 )
 {
-    char* destination  = (char*)dst;
-    const char* source = (const char*)src;
-    unsigned long long length = sz / sizeof( long );
+    PSTR destination  = (PSTR)dst;
+    PCSTR source = (PCSTR)src;
+    ULONG64 length = sz / sizeof( LONG32 );
 
     if( sz == 0 || dst == src )
     {
@@ -22,9 +23,9 @@ memcpy(
         return NULL;
     }
 
-    // copy per byte until destination is aligned to long
+    // copy per byte until destination is aligned to LONG32
     while (
-        sz > 0 && ( (unsigned long long)destination & ( sizeof( long ) - 1 ) ) 
+        sz > 0 && ( (ULONG64)destination & ( sizeof( LONG32 ) - 1 ) ) 
         )
     {
         *destination++ = *source++;
@@ -32,24 +33,24 @@ memcpy(
     }
 
 
-    // copy per 4 bytes (long) 
-    long* dword = (long*)destination;
-    const long* sword = (const long*)source;
+    // copy per 4 bytes (LONG32) 
+    PLONG32 dword = (PLONG32)destination;
+    CONST PLONG32 sword = (CONST PLONG32)source;
 
-    for( unsigned long long i = 0; i < sz / sizeof( long ); i++ )
+    for( ULONG64 i = 0; i < sz / sizeof( LONG32 ); i++ )
     {
         dword[i] = sword[i];
     }
     
-    unsigned long v = sz % sizeof( long );
+    ULONG32 v = sz % sizeof( LONG32 );
 
     if (v != 0)
     {
         // copy remaining bytes
-        destination = (char*)&dword[sz / sizeof(long)];
-        source = (const char*)&sword[sz / sizeof(long)];
+        destination = (PSTR)&dword[sz / sizeof(LONG32)];
+        source = (PCSTR)&sword[sz / sizeof(LONG32)];
 
-        for (unsigned long long i = 0; i < v; i++)
+        for (ULONG64 i = 0; i < v; i++)
         {
             destination[i] = source[i];
         }
@@ -58,11 +59,11 @@ memcpy(
     return dst;
 }
 
-void*
+PVOID
 memset(
-    void* dst,
-    int v,
-    unsigned long long sz
+    PVOID dst,
+    LONG32 v,
+    ULONG64 sz
 )
 {
     if( sz == 0 )
@@ -70,20 +71,20 @@ memset(
         return dst;
     }
 
-    unsigned char* destination = dst;
+    PBYTE destination = dst;
     do 
     {
-        *destination++ = (unsigned char)v;
+        *destination++ = (BYTE)v;
     } while ( --sz != 0 );
 
     return dst;
 }
 
-int
+LONG32
 memcmp(
-    const void* dst,
-    const void* src,
-    unsigned long long sz
+    CONST PVOID dst,
+    CONST PVOID src,
+    ULONG64 sz
 )
 {
     if (sz == 0)
@@ -91,8 +92,8 @@ memcmp(
         return 0;
     }
 
-    unsigned char* p1 = dst;
-    unsigned char* p2 = src;
+    PBYTE p1 = dst;
+    PBYTE p2 = src;
 
     for( ; sz != 0; --sz )
     {
@@ -103,29 +104,29 @@ memcmp(
     }
 }
 
-char*
+PSTR
 strchr(
-    const char* src,
-    int c
+    PCSTR src,
+    LONG32 c
 )
 {
     for( ;; ++src )
     {
-        if( *src == (char)c )
+        if( *src == (CHAR)c )
         {
-            return (char*)src;
+            return (PSTR)src;
         }
         if( !( *src ) )
         {
-            return (char*)NULL;
+            return (PSTR)NULL;
         }
     }
 }
 
-int
+LONG32
 strcmp(
-    const char* s0,
-    const char* s1
+    PCSTR s0,
+    PCSTR s1
 )
 {
     while( *s0 == *s1++ )
@@ -135,18 +136,18 @@ strcmp(
             return 0;
         }
     }
-    return (*(unsigned char*)s0 - *(unsigned char*)--s1);
+    return (*(PBYTE)s0 - *(PBYTE)--s1);
 }
 
-char*
+PSTR
 strlcpy(
-    char* dst,
-    const char* src,
-    unsigned long long sz
+    PSTR dst,
+    PCSTR src,
+    ULONG64 sz
 )
 {
-    const char* src0 = src;
-    unsigned long long left = sz;
+    PCSTR src0 = src;
+    ULONG64 left = sz;
 
     if( left != 0 )
     {
@@ -171,26 +172,26 @@ strlcpy(
     return (src - src0 - 1);
 }
 
-unsigned long long
+ULONG64
 strlen(
-    const char* str
+    PCSTR str
 )
 {
-    const char* str0;
+    PCSTR str0;
     for (str0 = str; *str0; ++str0);
     return (str0 - str);
 }
 
-char*
+PSTR
 strstr(
-    const char* s0,
-    const char* s1
+    PCSTR s0,
+    PCSTR s1
 )
 {
 	for (;; )
     {
-        const char* p = s0;
-        const char* q = s1;
+        PCSTR p = s0;
+        PCSTR q = s1;
         while( *q != '\0' && *p == *q )
         {
             ++p;
@@ -198,11 +199,11 @@ strstr(
         }
         if( *q == '\0' )
         {
-            return (char*)s0;
+            return (PSTR)s0;
         }
         if( *s0 == '\0' )
         {
-            return (char*)NULL;
+            return (PSTR)NULL;
         }
         ++s0;
     }

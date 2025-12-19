@@ -5,7 +5,7 @@
     DEFAULT REL
 
 	section .text
-	align 8
+	align 16
 
 ; -----------------------------------------------------------------------------------------------
 ; uint64_t 
@@ -22,7 +22,7 @@
 
 	xor r10d, r10d
 
-	readmsr
+	rdmsr
 
 	mov r8, cr2
 	cmp r8d, MAGIC_LODWORD
@@ -50,8 +50,8 @@ readmsr_ret:
 ; 
 ; void 
 ; _scouse_cpuid( 
-;    _In_  unsigned __int32,    // rax 
-;    _Out_ unsigned __int32*    // rbx , pointer to buffer { eax, ebx, ecx, edx }
+;    _In_  unsigned __int32,    // rcx 
+;    _Out_ unsigned __int32*    // rdx , pointer to buffer { eax, ebx, ecx, edx }
 ; );                     
 ;
 ; -----------------------------------------------------------------------------------------------
@@ -59,25 +59,51 @@ readmsr_ret:
 	global _scouse_cpuid
 	_scouse_cpuid:
 
-	push rbx
+    push rbx			 ; save rbx as cpuid over writes it 
 
-	mov  r10, rdx
-	mov  eax, ecx
-	xor  ecx, ecx
-	push rax
+    mov  r10, rdx        ; save paramter into r10 as cpuid overwrite rdx
+    mov  eax, ecx        ; cpuid takes function from eax
+    xor  ecx, ecx        ; zero subleaf
 
-	cpuid	
+    cpuid
 
-	mov [r10],		eax
-	mov [r10 + 4 ], ebx
-	mov [r10 + 8 ], ecx
-	mov [r10 + 12], edx
+    mov  dword [r10 + 0],  eax
+    mov  dword [r10 + 4],  ebx
+    mov  dword [r10 + 8],  ecx
+    mov  dword [r10 + 12], edx
 
-	pop rax
-	pop rbx
+    pop  rbx
+    ret
 
-	ret
+; -----------------------------------------------------------------------------------------------
+; 
+; void 
+; _scouse_cpuidex( 
+;    _In_  unsigned __int32,    // rcx 
+;	 _In_  unsigned __int32,    // rdx 
+;    _Out_ unsigned __int32*    // r8, pointer to buffer { eax, ebx, ecx, edx }
+; );                     
+;
+; -----------------------------------------------------------------------------------------------
 
+	global _scouse_cpuidex
+	_scouse_cpuidex:
+
+    push rbx			 ; save rbx as cpuid over writes it 
+
+    mov  r10, r8         ; save paramter into r10 as cpuid overwrite rdx
+    mov  eax, ecx        ; cpuid takes function from eax
+    mov  ecx, edx        ; cpuid takes subleaf index from ecx
+
+    cpuid
+
+    mov  dword [r10 + 0],  eax
+    mov  dword [r10 + 4],  ebx
+    mov  dword [r10 + 8],  ecx
+    mov  dword [r10 + 12], edx
+
+    pop  rbx
+    ret
 
 ; -----------------------------------------------------------------------------------------------
 ;
@@ -204,3 +230,49 @@ readmsr_ret:
 	mov cr4, rax
 	ret
 
+; -----------------------------------------------------------------------------------------------
+;
+; unsigned __int64	// rax	
+; _scouse_readeflags(
+;
+; );
+;
+; -----------------------------------------------------------------------------------------------
+
+	global _scouse_readeflags
+	_scouse_readeflags:
+
+	     pushfq		 ; put RFLAGS onto the stack
+		 pop     rax ; Pop RFLAGS from stack into RAX
+		 ret
+
+; -----------------------------------------------------------------------------------------------
+;
+; void	
+; _scouse_writeeflags(
+;	_In_ unsigned __int64 // rcx
+; );
+;
+; -----------------------------------------------------------------------------------------------
+
+	global _scouse_writeeflags
+	_scouse_writeeflags:
+
+	    push    rcx ; Save RCX to stack
+		popfq		; Push RCX value into RFLAGS
+		ret
+
+; -----------------------------------------------------------------------------------------------
+;
+; void	
+; _scouse_debugbreak(
+
+; );
+;
+; -----------------------------------------------------------------------------------------------
+
+	global _scouse_debugbreak
+	_scouse_debugbreak:
+
+	int3
+	ret
