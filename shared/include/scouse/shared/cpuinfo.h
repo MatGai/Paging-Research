@@ -6,6 +6,18 @@
 #define CPU_ARCHITECTURE_X86   ( 0 )
 #define CPU_ARCHITECTURE_ARM64 ( 1 )
 
+typedef union _REGISTER_SET
+{
+	struct {
+		ULONG32 Eax;
+		ULONG32 Ebx;
+		ULONG32 Ecx;
+		ULONG32 Edx;
+	};
+
+    ULONG64 Registers[ 4 ];
+} REGISTER_SET, * PREGISTER_SET;
+
 typedef struct _CPUINFO_X86
 {
 	ULONG32 Family;
@@ -17,12 +29,18 @@ typedef struct _CPUINFO_X86
 	ULONG32 MaxStandardFunction;
 	ULONG32 MaxExtendedFunction;
 
-	ULONG32 Leaf1Ecx;
-	ULONG32 Leaf1Edx;
+	REGISTER_SET Leaf0;   // root
+    REGISTER_SET Leaf1;   // family, model, stepping, features
+	REGISTER_SET Leaf2;   // Intel cache and tlb info
+	REGISTER_SET Leaf7;	  // extended features
+	REGISTER_SET Leaf7_1; // extended features
 
-	ULONG32 Leaf7Ebx;
-	ULONG32 Leaf7Ecx;
-	ULONG32 Leaf7Edx;
+	REGISTER_SET Leaf80000000; // extended root
+    REGISTER_SET Leaf80000001; // AMD extended features and cache
+    REGISTER_SET Leaf80000002; // processor brand string part 1
+    REGISTER_SET Leaf80000003; // processor brand string part 2
+    REGISTER_SET Leaf80000004; // processor brand string part 3
+    REGISTER_SET Leaf80000021; // AMD extended feature id 2
 
 	// For intel hybrid CPUs
 	BOOLEAN Hybrid;
@@ -46,7 +64,7 @@ typedef struct _CPUINFO
 	{
 		CPUINFO_X86 X86;
 		CPUINFO_ARM64 Arm64;
-	} u;
+	};
 
 } CPUINFO, * PCPUINFO;
 

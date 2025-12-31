@@ -3,15 +3,19 @@
 
 #include <scouse/shared/typedefs.h>
 
+#define CPU_AUTHENTIC_AMD ( "AuthenticAMD" )
+#define CPU_GENUINE_INTEL ( "GenuineIntel" )
+
 typedef enum _CPU_CACHE_TYPE
 {
 	CPU_FEATURE_CACHE_NULL = 0,
 	CPU_FEATURE_CACHE_DATA, 
 	CPU_FEATURE_CACHE_INSTRUCTION,
+	CPU_FEATURE_CACHE_UNIFIED,
 	CPU_FEATURE_CACHE_TLB,
+	CPU_FEATURE_CACHE_DLB,
 	CPU_FEATURE_CACHE_STLB,
 	CPU_FEATURE_CACHE_PREFETCH
-
 } CPU_CACHE_TYPE;
 
 typedef struct _CACHE_INFO
@@ -31,10 +35,23 @@ typedef struct _CACHE_INFO
 typedef struct _CPU_CACHE_INFO
 {
 	LONG32 Size;
-	CACHE_INFO Levels[ CPU_MAX_CACHE_LEVEL ]
+	CACHE_INFO Levels[CPU_MAX_CACHE_LEVEL];
 }CPU_CACHE_INFO, *PCPU_CACHE_INFO;
 
 
 #define CPU_AMD_STANDARD_FUNCTIONS ( 0x000000000000FFFFull )  // Amd standard functions to query features such as AVX and FMA
+
+VOID
+GetCacheInfo(
+	_Out_ PCPU_CACHE_INFO CacheInfo,
+	_In_  ULONG32    Index
+);
+
+VOID
+ParseCacheInfo(
+	_Out_ PCPU_CACHE_INFO CacheInfo,
+	_In_ ULONG32 MaxLeaf,
+	_In_ ULONG32 LeafId
+);
 
 #endif // !ARCHX64_CPUDATA_H
