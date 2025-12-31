@@ -36,7 +36,7 @@ GetCpuInfo(
 	VendorString[ 0 ] = Registers[ CPUID_EBX ];
 	VendorString[ 1 ] = Registers[ CPUID_EDX ];
 	VendorString[ 2 ] = Registers[ CPUID_ECX ];
-	CpuInfo->Vendor[48] = '\0';
+	CpuInfo->Vendor[12] = '\0';
 
 	_scouse_cpuid( 0x00000001, Registers );
 
