@@ -174,7 +174,7 @@ RunTlbJumpTest(
 
     /*__flushtlb();*/
 
-    KrnlAmdItlbMissStartCounting();
+    AmdItlbMissStartCounting();
 
     Start = __rdtsc();
     for (Index = 0; Index < TLBTEST_ITERATIONS; ++Index)
@@ -184,7 +184,7 @@ RunTlbJumpTest(
     }
     End = __rdtsc();
 
-    KrnlAmdItlbMissStopCounting(&L1SameMisses, &L2SameMisses);
+    AmdItlbMissStopCounting(&L1SameMisses, &L2SameMisses);
 
     DeltaSamePage = End - Start;
 
@@ -208,7 +208,7 @@ RunTlbJumpTest(
 
     /*__flushtlb();*/
 
-    KrnlAmdItlbMissStartCounting();
+    AmdItlbMissStartCounting();
 
     Start = __rdtsc();
     unsigned int PageIndex = 0;
@@ -223,7 +223,7 @@ RunTlbJumpTest(
 
     End = __rdtsc();
 
-    KrnlAmdItlbMissStopCounting(&L1CrossMisses, &L2CrossMisses);
+    AmdItlbMissStopCounting(&L1CrossMisses, &L2CrossMisses);
 
     DeltaCrossPage = End - Start;
 

@@ -13,10 +13,22 @@ typedef enum _CPU_CACHE_TYPE
 	CPU_FEATURE_CACHE_INSTRUCTION,
 	CPU_FEATURE_CACHE_UNIFIED,
 	CPU_FEATURE_CACHE_TLB,
-	CPU_FEATURE_CACHE_DLB,
+	CPU_FEATURE_CACHE_DTLB,
 	CPU_FEATURE_CACHE_STLB,
 	CPU_FEATURE_CACHE_PREFETCH
 } CPU_CACHE_TYPE;
+
+typedef struct _CACHE_LEVEL_INFO
+{
+	INT16 level;
+	CPU_CACHE_TYPE cache_type;
+	LONG32 cache_size;
+	LONG32 ways;
+	LONG32 line_size;
+	LONG32 tlb_entries;
+	LONG32 partitioning;
+
+} CacheLevelInfo, *PCacheLevelInfo;
 
 typedef struct _CACHE_INFO
 {
@@ -28,7 +40,7 @@ typedef struct _CACHE_INFO
 	LONG32 TlbEntries;
 	LONG32 Partitioning;
 
-} CACHE_INFO, *PCACHE_INFO;
+} CACHE_INFO, * PCACHE_INFO;
 
 #define CPU_MAX_CACHE_LEVEL ( 10 )
 

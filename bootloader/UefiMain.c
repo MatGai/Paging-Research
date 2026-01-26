@@ -486,8 +486,6 @@ InitalSetup(
 
     BlDbgBreak();
 
-
-
     CPUINFO CpuInfo;
 
     GetCpuInfo( &CpuInfo );

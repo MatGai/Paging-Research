@@ -15,7 +15,7 @@ typedef union _REGISTER_SET
 		ULONG32 Edx;
 	};
 
-    ULONG64 Registers[ 4 ];
+    ULONG32 Registers[ 4 ];
 } REGISTER_SET, * PREGISTER_SET;
 
 typedef struct _CPUINFO_X86

@@ -1,8 +1,4 @@
-#ifndef KRNL_MSR_H
-#define KRNL_MSR_H
-
-#include <stdint.h>
-#include <intrin.h>
+#include <scouse/archx64/cpu/msramd.h>
 
 #define AMD_MSR_PERF_CTL( Value ) (0xC0010200u + ((unsigned __int32)( Value ) * 2u))
 #define AMD_MSR_PERF_CTR( Value ) (0xC0010201u + ((unsigned __int32)( Value ) * 2u))
@@ -26,10 +22,16 @@
 #define AMD_PMC_EVT_ALL_TLB_FLUSH   0x78u
 #define AMD_PMC_UMASK_ALL_TLB_FLUSH 0xFFu
 
-#define AMD_PMC_CTR_MASK  ((1ull << 48) - 1ull)
+#define AMD_PMC_EVT_CYCLES_NOT_HALTED      0x76u
+#define AMD_PMC_UMASK_CYCLES_NOT_HALTED    0x00u
+#define AMD_PMC_EVT_RETIRED_INSTRUCTIONS   0xC0u
+#define AMD_PMC_UMASK_RETIRED_INSTRUCTIONS 0x00u
 
-void 
-KrnlMsrAmdPmcConfigure(
+#define AMD_PMC_CTR_MASK	   ((1ull << 48) - 1ull)
+#define AMD_PMC_CTL_ENABLE_BIT (1ull << 22)
+
+void
+MsrAmdPmcConfigure(
 	unsigned __int32 PmcIndex,
 	unsigned __int8 EventSelect,
 	unsigned __int8 Unitmask,
@@ -56,19 +58,19 @@ KrnlMsrAmdPmcConfigure(
 }
 
 void
-KrnlAmdDtlbMissStartCounting(
-		void
+AmdDtlbMissStartCounting(
+	void
 )
 {
-	KrnlMsrAmdPmcConfigure(
-		0, 
-		AMD_PMC_EVT_L1_DTLB, 
-		AMD_PMC_UMASK_L1_DTLB_MISS, 
+	MsrAmdPmcConfigure(
+		0,
+		AMD_PMC_EVT_L1_DTLB,
+		AMD_PMC_UMASK_L1_DTLB_MISS,
 		AMD_PMC_OSUSER_ALL
 	);
-	
-	KrnlMsrAmdPmcConfigure(
-		1, 
+
+	MsrAmdPmcConfigure(
+		1,
 		AMD_PMC_EVT_L1_DTLB,
 		AMD_PMC_UMASK_L2_DTLB_MISS,
 		AMD_PMC_OSUSER_ALL
@@ -76,7 +78,7 @@ KrnlAmdDtlbMissStartCounting(
 }
 
 void
-KrnlAmdDtlbMissStopCounting(
+AmdDtlbMissStopCounting(
 	unsigned __int64* L1DtlbMisses,
 	unsigned __int64* L2DtlbMisses
 )
@@ -104,18 +106,18 @@ KrnlAmdDtlbMissStopCounting(
 }
 
 void
-KrnlAmdItlbMissStartCounting(
+AmdItlbMissStartCounting(
 	void
 )
 {
-	KrnlMsrAmdPmcConfigure(
+	MsrAmdPmcConfigure(
 		0,
 		AMD_PMC_EVT_L1_ITLB_MISS_L2_HIT,
 		AMD_PMC_UMASK_L1_ITLB_MISS_L2_HIT,
 		AMD_PMC_OSUSER_ALL
 	);
 
-	KrnlMsrAmdPmcConfigure(
+	MsrAmdPmcConfigure(
 		1,
 		AMD_PMC_EVT_L2_ITLB_MISS,
 		AMD_PMC_UMASK_L2_ITLB_MISS,
@@ -124,7 +126,7 @@ KrnlAmdItlbMissStartCounting(
 }
 
 void
-KrnlAmdItlbMissStopCounting(
+AmdItlbMissStopCounting(
 	unsigned __int64* L1ItlbMisses,
 	unsigned __int64* L2ItlbMisses
 )
@@ -152,7 +154,7 @@ KrnlAmdItlbMissStopCounting(
 }
 
 void
-KrnlMsrAmdPmcDisable(
+MsrAmdPmcDisable(
 	unsigned __int32 PmcIndex
 )
 {
@@ -163,13 +165,40 @@ KrnlMsrAmdPmcDisable(
 }
 
 unsigned __int64
-KrnlMsrAmdPmcRead(
+MsrAmdPmcRead(
 	unsigned __int32 PmcIndex
 )
 {
 	return __readmsr(AMD_MSR_PERF_CTR(PmcIndex)) & AMD_PMC_CTR_MASK;
 }
 
+void
+AmdCyclesStartCounting(
+	void
+)
+{
+	KrnlMsrAmdPmcConfigure(2, AMD_PMC_EVT_CYCLES_NOT_HALTED, AMD_PMC_UMASK_CYCLES_NOT_HALTED, AMD_PMC_OSUSER_ALL);
+	KrnlMsrAmdPmcConfigure(3, AMD_PMC_EVT_RETIRED_INSTRUCTIONS, AMD_PMC_UMASK_RETIRED_INSTRUCTIONS, AMD_PMC_OSUSER_ALL);
+}
 
+void AmdCyclesStopCount(
+	unsigned __int64* CyclesNotHalted,
+	unsigned __int64* RetiredInstructions
+)
+{
+	unsigned __int64 Cycles       = MsrAmdPmcRead(0x2);
+	unsigned __int64 Instructions = MsrAmdPmcRead(0x3);
 
-#endif // !KRNL_MSR_H
+	MsrAmdPmcDisable(0x2);
+	MsrAmdPmcDisable(0x3);
+
+	if( CyclesNotHalted )
+	{
+        *CyclesNotHalted = Cycles;
+	}
+
+	if ( RetiredInstructions )
+	{
+		*RetiredInstructions = Instructions;
+	}
+}

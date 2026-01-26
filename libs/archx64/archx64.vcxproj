@@ -30,12 +30,17 @@
     <ClCompile Include="cpu\cpudata.c" />
     <ClCompile Include="cpu\cpuid.c" />
     <ClCompile Include="cpu\cpuinfo.c" />
-    <ClCompile Include="msr.c" />
+    <ClCompile Include="cpu\msr.c" />
+    <ClCompile Include="cpu\msramd.c" />
+    <ClCompile Include="cpu\msrintel.c" />
+    <ClCompile Include="include\scouse\archx64\cpu\msrintel.h" />
     <ClCompile Include="paging.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\scouse\archx64\cpu\cpudata.h" />
     <ClInclude Include="include\scouse\archx64\cpu\cpuid.h" />
+    <ClInclude Include="include\scouse\archx64\cpu\msr.h" />
+    <ClInclude Include="include\scouse\archx64\cpu\msramd.h" />
     <ClInclude Include="include\scouse\archx64\intrinsics.h" />
     <ClInclude Include="include\scouse\archx64\special.h" />
   </ItemGroup>
