@@ -276,3 +276,29 @@ readmsr_ret:
 
 	int3
 	ret
+
+
+	global _scouse_mfence
+	_scouse_mfence:
+		mfence
+		ret
+
+	global _scouse_lfence
+	_scouse_lfence:
+		lfence
+		ret
+
+	global _scouse_rdstc
+	_scouse_rdstc:
+		rdtsc
+		shl rdx, 32
+		or rax, rdx
+		ret
+
+	global _scouse_rdtscp
+	_scouse_rdtscp:
+		rdtscp
+		shl rdx, 32
+		or rax, rdx 
+		ret
+

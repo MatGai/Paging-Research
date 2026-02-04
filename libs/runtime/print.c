@@ -8,7 +8,8 @@ ConsoleWrite(
 	PWCHAR str
 )
 {
-	return &str;
+	/*return &str;*/
+	return (ULONG32)0;
 }
 
 ULONG64 
@@ -20,10 +21,10 @@ putc(
 {
 	WCHAR tmp[2] = { character, '\0' };
 
-	if (character == L'\n')
-	{
-		sputc( WriteConsole, L'\r' );
-	}
+	//if (character == L'\n')
+	//{
+	//	//sputc( WriteConsole, L'\r' );
+	//}
 
 	if (WriteConsole)
 	{
@@ -39,7 +40,8 @@ printf(
 	...
 )
 {
-	va_list args;
+	/*va_list args;*/
+	return (ULONG64)0;
 
 }
 
@@ -49,5 +51,6 @@ print(
 
 )
 {
-	sputc(ConsoleWrite, L"A");
+	//sputc(ConsoleWrite, L"A");
+	return;
 }

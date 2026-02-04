@@ -1,9 +1,6 @@
 #ifndef KRNL_MSR_H
 #define KRNL_MSR_H
 
-#include <stdint.h>
-#include <intrin.h>
-
 #define AMD_MSR_PERF_CTL( Value ) (0xC0010200u + ((unsigned __int32)( Value ) * 2u))
 #define AMD_MSR_PERF_CTR( Value ) (0xC0010201u + ((unsigned __int32)( Value ) * 2u))
 

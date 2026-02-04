@@ -1,5 +1,5 @@
-
-#include "msr.h"
+#include <scouse/archx64/cpu/msramd.h>
+#include "timer.h"
 
 typedef struct _EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL;
 
@@ -40,7 +40,7 @@ typedef struct _BOOT_INFO {
 #include <stdint.h>
 
 #define TLBTEST_PAGE_SIZE      0x1000
-#define TLBTEST_NUM_PAGES      8888
+#define TLBTEST_NUM_PAGES      8192
 #define TLBTEST_ITERATIONS     0xFFFFFF
 
 
@@ -66,8 +66,8 @@ RunTlbJumpTest(
     EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL* ConOut
 );
 
-void
-RunPmcSanityTest(EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL* ConOut);
+//void
+//RunPmcSanityTest(EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL* ConOut);
 
 int KernelMain(
     EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL* ConOut,
@@ -93,14 +93,6 @@ __flushtlb(
     __writecr3(cr3);
 }
 
-unsigned __int64 
-__readtscserial(
-    void
-)
-{
-    unsigned __int64 t = __rdtsc();
-    return t;
-}
 
 static __forceinline TLBTEST_STUB
 TlbTestGetStubInPage(
@@ -140,7 +132,9 @@ ConOutPrintDecimal(
     ConOut->Print(ConOut, &buf[pos]);
 }
 
-#include "msr.h"
+
+static TLBTEST_STUB gStubs[TLBTEST_NUM_PAGES];
+
 
 void
 RunTlbJumpTest(
@@ -155,7 +149,7 @@ RunTlbJumpTest(
     unsigned __int64 L2SameMisses = 2;
     unsigned __int64 L1CrossMisses = 2;
     unsigned __int64 L2CrossMisses = 2;
-
+    
     ConOut->Print(ConOut, L"\r\n[TLB] Setting up jump pages...\r\n");
 
     for (Index = 0; Index < TLBTEST_NUM_PAGES; ++Index)
@@ -170,19 +164,23 @@ RunTlbJumpTest(
         Stub();
     }
 
+    for (Index = 0; Index < TLBTEST_NUM_PAGES; ++Index)
+    {
+        gStubs[Index] = TlbTestGetStubInPage(Index);
+    }
+
     ConOut->Print(ConOut, L"[TLB] Same page jump test...\r\n");
 
     /*__flushtlb();*/
 
     AmdItlbMissStartCounting();
 
-    Start = __rdtsc();
+    Start = TscStart();
     for (Index = 0; Index < TLBTEST_ITERATIONS; ++Index)
     {
-        TLBTEST_STUB SamePageStub = TlbTestGetStubInPage(0);
-        SamePageStub();
+        gStubs[0]();
     }
-    End = __rdtsc();
+    End = TscEnd();
 
     AmdItlbMissStopCounting(&L1SameMisses, &L2SameMisses);
 
@@ -210,18 +208,16 @@ RunTlbJumpTest(
 
     AmdItlbMissStartCounting();
 
-    Start = __rdtsc();
+    Start = TscStart();
     unsigned int PageIndex = 0;
 
     for (Index = 0; Index < TLBTEST_ITERATIONS; ++Index)
     {
-        TLBTEST_STUB Stub = TlbTestGetStubInPage(PageIndex);
-        Stub();
-
-        PageIndex = (PageIndex + 1) % TLBTEST_NUM_PAGES;
+        gStubs[PageIndex]();
+        PageIndex = (PageIndex + 1) & (TLBTEST_NUM_PAGES - 1);
     }
 
-    End = __rdtsc();
+    End = TscEnd();
 
     AmdItlbMissStopCounting(&L1CrossMisses, &L2CrossMisses);
 

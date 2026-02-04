@@ -33,8 +33,10 @@
     <ClCompile Include="cpu\msr.c" />
     <ClCompile Include="cpu\msramd.c" />
     <ClCompile Include="cpu\msrintel.c" />
-    <ClCompile Include="include\scouse\archx64\cpu\msrintel.h" />
+    <ClCompile Include="random.c" />
+    <ClInclude Include="include\scouse\archx64\cpu\msrintel.h" />
     <ClCompile Include="paging.c" />
+    <ClInclude Include="include\scouse\archx64\random.h" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\scouse\archx64\cpu\cpudata.h" />
@@ -182,17 +184,20 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <SDLCheck>true</SDLCheck>
+      <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
       <LanguageStandard_C>stdc11</LanguageStandard_C>
       <CompileAs>CompileAsC</CompileAs>
       <AdditionalIncludeDirectories>$(SolutionDir)shared\include;$(ProjectDir)include;$(SolutionDir)libs\runtime\include</AdditionalIncludeDirectories>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <FunctionLevelLinking>false</FunctionLevelLinking>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <SupportJustMyCode>false</SupportJustMyCode>
     </ClCompile>
     <Link>
       <SubSystem>

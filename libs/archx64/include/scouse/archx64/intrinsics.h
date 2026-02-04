@@ -10,7 +10,14 @@ extern "C" {
 	VOID
 	_scouse_cpuid(
 		ULONG32, 
-		ULONG32*
+		ULONG32[4]
+	);
+
+	VOID
+	_scouse_cpuidex(
+		ULONG32,  
+		ULONG32,  
+		ULONG32[4]
 	);
 
 	ULONG64

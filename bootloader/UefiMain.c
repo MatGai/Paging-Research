@@ -359,7 +359,7 @@ UefiMain(
     ULONG64 Pml4Physical = SsPagingInit( );
     if( !Pml4Physical )
     {
-        DBG_ERROR( L"Failed to allogcate Pml4 a physical address" );
+        //DBG_ERROR( L"Failed to allogcate Pml4 a physical address" );
         getc( );
         return 1;
     }
@@ -387,10 +387,6 @@ UefiMain(
     ULONG64 CodePage;
 
     AllocatePage( &CodePage );
-
-    ULONG64 HostCode = ALIGN_PAGE( &__HostCode );
-
-    CopyMem( ( PVOID )CodePage, ( PVOID )HostCode, DEFAULT_PAGE_SIZE );
 
     MapPage( KERNEL_VA_BASE, CodePage, PAGE_FLAG_PRESENT | PAGE_FLAG_RW );
 

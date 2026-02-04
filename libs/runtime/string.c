@@ -102,6 +102,8 @@ memcmp(
             return ( *--p1 - *--p2 );
         }
     }
+
+    return 0;
 }
 
 PSTR
@@ -169,7 +171,7 @@ strlcpy(
         while( *src++ );
     }
 
-    return (src - src0 - 1);
+    return (PSTR)(src - src0 - 1);
 }
 
 ULONG64

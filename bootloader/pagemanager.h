@@ -353,7 +353,6 @@ DirectMapRange(
     }
 
     ULONG64 CurrentPhysical = PhysicalStart;    
-    EFI_STATUS St;
     ULONG64 Flags = PAGE_FLAG_PRESENT | PAGE_FLAG_RW;
 
     while( CurrentPhysical < PhysicalEnd )
@@ -436,17 +435,6 @@ MapKernel(
         }
     }
     return EFI_SUCCESS;
-}
-
-
-
-EFI_STATUS
-BLAPI
-__HostCode(
-
-)
-{
-    Print( L"Hello from kernel !" );
 }
 
 #endif  // !PAGEMANAGER_H

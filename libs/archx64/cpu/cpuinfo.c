@@ -29,7 +29,7 @@ GetCpuInfo(
 
 	ULONG32 Registers[ 4 ] = { 0 };
 
-	_scouse_cpuid( 0x00000000, &CpuInfo->X86.Leaf0 );
+	_scouse_cpuid( 0x00000000, (ULONG32*)&CpuInfo->X86.Leaf0);
 
 	ULONG32 HsCall = CpuInfo->X86.MaxStandardFunction = CpuInfo->X86.Leaf0.Eax;
 
@@ -38,7 +38,7 @@ GetCpuInfo(
 	VendorString[ 2 ] = CpuInfo->X86.Leaf0.Ecx;
 	CpuInfo->Vendor[12] = '\0';
 
-	_scouse_cpuid( 0x00000001, &CpuInfo->X86.Leaf1 );
+	_scouse_cpuid( 0x00000001, (ULONG32*)&CpuInfo->X86.Leaf1 );
 
 	CpuInfo->X86.Stepping = CpuInfo->X86.Leaf1.Eax & 0x0000000F;
 	CpuInfo->X86.Model    = (ULONG32)( CpuInfo->X86.Leaf1.Eax & 0x000000F0 ) >> 4;
@@ -58,7 +58,7 @@ GetCpuInfo(
 		return;
 	}
 
-	_scouse_cpuid(0x00000007, &CpuInfo->X86.Leaf7 );
+	_scouse_cpuid(0x00000007, (ULONG32*)&CpuInfo->X86.Leaf7 );
 
 
 	if( CpuInfo->X86.Leaf7.Ebx & ( (ULONG32)1 << 15 ) )

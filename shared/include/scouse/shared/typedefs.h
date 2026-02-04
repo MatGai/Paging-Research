@@ -1,5 +1,5 @@
-#ifndef TYPDEFS_H	
-#define TYPDEFS_H	
+#ifndef TYPEDEFS_H	
+#define TYPEDEFS_H	
 
 //
 // standard types and defines
@@ -12,26 +12,31 @@
 #define VOLATILE volatile
 #define EXTERN extern
 
+
+typedef signed char INT8, * PINT8;
+typedef unsigned char UINT8, * PUINT8;
 typedef signed short INT16, *PINT16;
+typedef unsigned short UINT16, * PUINT16;
 
 typedef signed int LONG, *PLONG;
 typedef unsigned int ULONG, *PULONG;
 typedef LONG LONG32, * PLONG32;
 typedef ULONG ULONG32, * PULONG32;
 
-typedef signed char CHAR, *PCHAR, *PSTR;
+typedef char CHAR, *PCHAR, *PSTR;
 typedef CONST CHAR* LPCSTR, *PCSTR;
 
 typedef unsigned char BYTE, *PBYTE;
 
-typedef unsigned short WCHAR, *PWCHAR, *PSTRW;
+
+typedef unsigned short WCHAR, *PWCHAR, *PWSTR;
 typedef CONST PWCHAR LPCWSTR, PCWSTR;
 
 typedef signed long long LONG64, *PLONG64;
 
 typedef unsigned long long ULONG64, *PULONG64;
 
-typedef unsigned short WORD, *PWROD;
+typedef unsigned short WORD, *PWORD;
 
 typedef unsigned char BOOLEAN;
 

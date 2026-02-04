@@ -229,7 +229,7 @@ BlListDirectoryRecursive(
     FILE_SYSTEM_STATUS = Directory->SetPosition( Directory, 0 );
     if( EFI_ERROR( FILE_SYSTEM_STATUS ) )
     {
-        DBG_ERROR( L"Failed to SetPosition on directory\n" );
+        //DBG_ERROR( L"Failed to SetPosition on directory\n" );
         return FALSE;
     }
 
@@ -389,7 +389,7 @@ BlSetWorkingDirectory(
 EFI_STATUS
 BlGetFileName(
     _In_ EFI_FILE_PROTOCOL* FileProtocol,
-    _Out_ PCWSTR* Out
+    _Out_ PWSTR* Out
 )
 {
     if( FileProtocol == NULL )

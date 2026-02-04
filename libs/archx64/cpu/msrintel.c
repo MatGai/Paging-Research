@@ -1,6 +1,6 @@
+#include <scouse/archx64/cpu/msrintel.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <scouse/archx64/cpu/msrintel.h>
 #include <intrin.h>
 
 //
@@ -99,12 +99,12 @@ IntelProgramGpEvent(
     __writemsr(INTEL_MSR_IA32_PERFEVTSEL(PmcIndex), EventSelectValue);
 }
 
-bool 
-IntelPmuInitSkyLake(
-    void
-)
-{
-
-
-
-}
+//bool 
+//IntelPmuInitSkyLake(
+//    void
+//)
+//{
+//
+//
+//    return false;
+//}

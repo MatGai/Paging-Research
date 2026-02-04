@@ -13,7 +13,7 @@
 
 static EFI_GUID __FileSystemProtoclGUID__ = SIMPLE_FILE_SYSTEM_PROTOCOL;
 
-static PCWSTR             CurrentDirectoryString;
+static PWSTR             CurrentDirectoryString;
 static EFI_FILE_PROTOCOL* CurrentDirectory;
 static EFI_HANDLE* CurrentFileSystemHandle;
 static EFI_STATUS         FILE_SYSTEM_STATUS;
@@ -159,7 +159,7 @@ BlGetLastFileError(
 EFI_STATUS
 BlGetFileName(
     _In_ EFI_FILE_PROTOCOL* FileProtocol,
-    _Out_ PCWSTR* Out
+    _Out_ PWSTR* Out
 );
 
 /**
@@ -185,10 +185,10 @@ BlGetFileInfo(
 *
 * @param File, A string of the file to look for.
 */
-VOID
-BLAPI
-BlFindFileDirectory(
-    _In_ PCWSTR File
-);
+//VOID
+//BLAPI
+//BlFindFileDirectory(
+//    _In_ PCWSTR File
+//);
 
 #endif // !FILESYSTEM_H

@@ -10,11 +10,12 @@
     <ClCompile Include="entry.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="strser.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <MASM Include="entry.masm" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="msr.h" />
+    <ClInclude Include="timer.h" />
+    <ClInclude Include="strser.h" />
   </ItemGroup>
 </Project>

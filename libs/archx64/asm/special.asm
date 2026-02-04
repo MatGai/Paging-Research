@@ -28,3 +28,76 @@
 		   and	   rax, 1          ; mask all other bits
 
 		   ret
+
+
+	;
+	; _rdrandy64_step - Trys to retrieve a single 64-bit random value. ** RDRAND can fail ** 
+	;
+	; Input(s):		RCX - 64-bit pointer to store the random value
+	;
+	; Output(s):	1 on success, 0 on failure
+	;
+	
+	global _scouse_rdrand64_step
+	_scouse_rdrand64_step:
+
+		push rbx
+
+		rdrand rbx
+		jc .end 
+
+		xor rax, rax
+		pop rbx
+		ret
+
+	.end: 
+
+		mov [rcx], rbx
+		mov rax, 1
+		pop rbx
+		ret
+
+	; 
+	; _rdrandy64_try - Attemps to retrieve a 64-bit random value, with specified retries. (0 retries will try once)
+	;
+	;  Input(s):	RCX - 64-bit pointer to store the random value
+	;				RDX - Signed 32-bit number of retries
+	;
+	;  Output(s):	1 on success, 0 on failure
+	;
+
+	global _scouse_rdrand64_retry
+	_scouse_rdrand64_retry:
+		
+		push rbx  
+		test rdx, rdx
+		inc rdx
+
+	.retry:
+		
+		;
+		; Call RDRAND instruction, which will store a random value in rbx.
+		; If the RDRAND instruction fails, the carry flag will be 0.
+		;
+
+		rdrand rbx
+		jc .end			; jumps to .end if carry flag is set   
+
+		dec rdx
+		jnz .retry		; rdx should be signed otherwise this is weird
+		
+		;
+		; We have run out of tries, set return value to 0 and return 
+		;
+
+		xor rax, rax
+		pop rbx
+		ret
+
+	.end:
+		
+		mov [rcx], rbx
+		mov rax, 1
+		
+		pop rbx
+		ret

@@ -13,6 +13,17 @@ extern "C"
         VOID
     );
 
+    BOOLEAN 
+    _scouse_rdrand64_step(
+        _Out_ ULONG64* Out
+    );
+
+    BOOLEAN 
+    _scouse_rdrand64_retry(
+        _Out_ ULONG64* Out,
+        _In_  LONG Retries
+    );
+
 #ifdef __cplusplus
 }
 #endif

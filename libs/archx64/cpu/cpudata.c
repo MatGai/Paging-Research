@@ -1,6 +1,7 @@
 #include <scouse/archx64/cpu/cpudata.h>
 #include <scouse/shared/cpuinfo.h>
 #include <scouse/runtime/string.h>
+#include <scouse/archx64/intrinsics.h>
 
 static CacheLevelInfo EmptyCacheLevelInfo = { 0 };
 
@@ -1083,7 +1084,7 @@ ParseIntelDeterministicTlb(_Out_ PCPU_CACHE_INFO CacheInfo, _In_ const CPUINFO* 
     for (uint32_t i = 0; CacheInfo->Size < CPU_MAX_CACHE_LEVEL; ++i)
     {
         REGISTER_SET leaf = { 0 };
-        _scouse_cpuidex(0x18, i, &leaf.Registers);
+        _scouse_cpuidex(0x18, i, leaf.Registers);
 
         uint32_t type = leaf.Eax & 0x1F;
         if (type == 0) return; // no more translation cache info :contentReference[oaicite:14]{index=14}
@@ -1165,7 +1166,7 @@ GetCacheInfo(
 
         static_assert(sizeof(REGISTER_SET) == sizeof(Data), "Leaf size mismatch!");
 
-        memcpy((PBYTE)Data, (PCSTR)&Leaf, sizeof(Data));
+        memcpy((PBYTE)Data, (PVOID)&Leaf, sizeof(Data));
 
         for( ULONG32 Index = 0; Index < sizeof( Data ); ++Index )
         {
@@ -1212,7 +1213,7 @@ ParseCacheInfo(
 	for( ULONG Index = 0; CacheInfo->Size < CPU_MAX_CACHE_LEVEL; ++Index )
 	{
 		REGISTER_SET Leaf = { 0 };
-        _scouse_cpuidex(LeafId, Index, &Leaf.Registers);
+        _scouse_cpuidex(LeafId, Index, Leaf.Registers);
 
         switch (Leaf.Eax & 0x1F)
 		{
