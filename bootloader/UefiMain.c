@@ -9,6 +9,9 @@ typedef struct _BOOT_INFO
 {
     ULONG64 DirectMapBase;
     ULONG64 Pml4Physical;
+    ULONG64 PfnArrayPhysical; 
+    ULONG64 PfnCount;
+    ULONG64 PfnFreeHead;
 } BOOT_INFO, * PBOOT_INFO;
 
 CHAR8* gEfiCallerBaseName = "Scouse Systems";
@@ -427,14 +430,26 @@ UefiMain(
     MapKernel(  KernelImage.Base, KernelImage.VirtualBase );
     __writecr3( Pml4Physical );
 
+    BOOT_INFO* BootInfo = NULL;
+
+    AllocatePage(BootInfo);
+
+    BootInfo->DirectMapBase = 0;
+    BootInfo->Pml4Physical = Pml4Physical;
+    BootInfo->PfnArrayPhysical = (ULONG64)SsPfn;
+    BootInfo->PfnCount = SsPfnCount;
+    BootInfo->PfnFreeHead = SsPfnFreeHead;
+
+    Print( L"Pml4 physicall ... %llu\n", Pml4Physical);
+
     typedef int (*KernelCall)(EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL*, PBOOT_INFO);
     KernelCall KEntry = (KernelCall)(KernelImage.VirtualBase + KernelImage.EntryPoint);
 
    /* __switchcr3( Pml4Physical & ~0xFFF, KERNEL_VA_STACK_TOP, KERNEL_VA_BASE + ( KernelImage.EntryPoint ) );*/
 
-    int ReturnValue = KEntry( gST->ConOut, NULL );
+    int ReturnValue = KEntry( gST->ConOut, BootInfo);
 
-    Print( L"Kernel returned %d\n", ReturnValue );
+    Print( L"Kernel returned %d\n", BootInfo );
 
     CPUINFO CpuInfo; 
     GetCpuInfo( &CpuInfo );

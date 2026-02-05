@@ -36,6 +36,7 @@
     <ClCompile Include="random.c" />
     <ClInclude Include="include\scouse\archx64\cpu\msrintel.h" />
     <ClCompile Include="paging.c" />
+    <ClInclude Include="include\scouse\archx64\paging.h" />
     <ClInclude Include="include\scouse\archx64\random.h" />
   </ItemGroup>
   <ItemGroup>

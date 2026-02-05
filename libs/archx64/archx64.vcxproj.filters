@@ -65,6 +65,9 @@
     <ClInclude Include="include\scouse\archx64\random.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\scouse\archx64\paging.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <NASM Include="asm\intrinsics.nasm" />

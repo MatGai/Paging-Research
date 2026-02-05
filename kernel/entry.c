@@ -1,5 +1,5 @@
 #include <scouse/archx64/cpu/msramd.h>
-#include "timer.h"
+#include <timer.h>
 
 typedef struct _EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL;
 
@@ -35,6 +35,9 @@ typedef struct _EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL {
 typedef struct _BOOT_INFO {
     unsigned __int64 DirectMapBase;
     unsigned __int64 Pml4Physical;
+    unsigned __int64 PfnArrayPhysical;
+    unsigned __int64 PfnCount;
+    unsigned __int64 PfnFreeHead;
 } BOOT_INFO, * PBOOT_INFO;
 
 #include <stdint.h>
@@ -75,6 +78,19 @@ int KernelMain(
 )
 {
     ConOut->Print(ConOut, L"Hello from kernel buffer!\r\n");
+
+    ConOut->Print(ConOut, L"Pml4Physical.... ");
+    ConOutPrintDecimal( ConOut, BootInfo->Pml4Physical );
+    ConOut->Print(ConOut, L"\r\n");
+
+    KrnlPagingInit(
+        BootInfo->DirectMapBase,
+        BootInfo->Pml4Physical,
+        BootInfo->PfnArrayPhysical,
+        BootInfo->PfnCount,
+        BootInfo->PfnFreeHead
+    );
+
     RunTlbJumpTest(ConOut);
 
     return 1;

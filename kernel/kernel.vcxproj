@@ -304,11 +304,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="entry.c" />
+    <ClCompile Include="pagemanager.c" />
     <ClCompile Include="strser.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="strser.h" />
-    <ClInclude Include="timer.h" />
+    <ClInclude Include="include\pagemanager.h" />
+    <ClInclude Include="include\strser.h" />
+    <ClInclude Include="include\timer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
