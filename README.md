@@ -1,3 +1,5 @@
+<p>Note: The main branch is not updated frequently, as it is intended for stable releases. Please check out the dev branch for active development.</p>
+
 # Final Year Dissertation Project — Page Sizes on Modern Systems 
 
 The scope of this project is to explore how page size choices influence hardware behaviour. The objective is to build an interface that maps an executable while allowing control over page sizes (4 KiB, 2 MiB, and 1 GiB) across different memory regions and mappings (uniform vs mixed).
