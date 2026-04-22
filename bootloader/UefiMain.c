@@ -4,15 +4,9 @@
 #include "status.h"
 #include <scouse/shared/cpuinfo.h>
 #include <scouse/archx64/intrinsics.h>
-
-typedef struct _BOOT_INFO
-{
-    ULONG64 DirectMapBase;
-    ULONG64 Pml4Physical;
-    ULONG64 PfnArrayPhysical; 
-    ULONG64 PfnCount;
-    ULONG64 PfnFreeHead;
-} BOOT_INFO, * PBOOT_INFO;
+#include <scouse/archx64/special.h>
+#include <intrin.h>
+#include <gop.h>
 
 CHAR8* gEfiCallerBaseName = "Scouse Systems";
 const UINT32 _gUefiDriverRevision = 0x0;
@@ -43,11 +37,7 @@ FindExeFile( _In_ PCWSTR FileName, _Inout_ PBL_LDR_LOADED_IMAGE_INFO FileInfo )
         return EFI_NOT_FOUND;
     }
 
-    if( !EFI_ERROR( BlGetRootDirectory( NULL ) ) )
-    {
-        BlListAllFiles( );
-    }
-    else
+    if( EFI_ERROR( BlGetRootDirectory( NULL ) ) )
     {
         if( EFI_ERROR( FILE_SYSTEM_STATUS ) )
         {
@@ -81,53 +71,6 @@ FindExeFile( _In_ PCWSTR FileName, _Inout_ PBL_LDR_LOADED_IMAGE_INFO FileInfo )
     return EFI_SUCCESS;
 };
 
-
-
-EFI_STATUS
-MappingExists(
-    ULONG64 Pml4,
-    ULONG64 VirtualAddress
-)
-{
-    ULONG64 Pml4Index = PML4_INDEX( VirtualAddress );
-    ULONG64 PdptIndex = PDPT_INDEX( VirtualAddress );
-    ULONG64 PdIndex   = PD_INDEX( VirtualAddress );
-    ULONG64 PtIndex   = PT_INDEX( VirtualAddress );
-
-    ULONG64* Pml4t = (ULONG64*)Pml4;
-    ULONG64* Pdpt;
-    ULONG64* Pd;
-    ULONG64* Pt;
-
-    if( !( Pml4t[ Pml4Index ] & PAGE_FLAG_PRESENT ) )
-    {
-        return EFI_ABORTED;
-    }
-
-    Pdpt = (ULONG64*)(Pml4t[ Pml4Index ] & 0x000FFFFFFFFFF000ULL );
-
-    if( !( Pdpt[ PdptIndex ] & PAGE_FLAG_PRESENT ) )
-    {
-        return EFI_ABORTED;
-    }
-
-    Pd = ( ULONG64* )( Pdpt[ PdptIndex ] & 0x000FFFFFFFFFF000ULL );
-
-    if( !( Pd[ PdIndex ] & PAGE_FLAG_PRESENT ) )
-    {
-        return EFI_ABORTED;
-    }
-
-    Pt = ( ULONG64* )( Pd[ PdIndex ] & 0x000FFFFFFFFFF000ULL );
-
-    if( !( Pt[ PtIndex ] & PAGE_FLAG_PRESENT ) )
-    {
-        return EFI_ABORTED;
-    }
-    
-    return EFI_SUCCESS;
-}
-
 /**
  * @brief The entry point for the UEFI application.
  *
@@ -144,8 +87,6 @@ UefiMain(
     EFI_SYSTEM_TABLE* SystemTable 
 )
 {
-
-
     EFI_STATUS Status;
     Status = InitalSetup( ImageHandle );
 
@@ -177,7 +118,7 @@ UefiMain(
 
     // get size of memory map
     EFI_STATUS MemMap = gBS->GetMemoryMap( &SystemMemoryMap.MapSize,
-                                           SystemMemoryMap.Descriptor,
+                                           (EFI_MEMORY_DESCRIPTOR*)SystemMemoryMap.Descriptor,
                                            &SystemMemoryMap.Key,
                                            &SystemMemoryMap.DescriptorSize,
                                            &SystemMemoryMap.Version );
@@ -195,7 +136,7 @@ UefiMain(
 
     // get memory map
     MemMap = gBS->GetMemoryMap( &SystemMemoryMap.MapSize,
-                                SystemMemoryMap.Descriptor,
+                                (EFI_MEMORY_DESCRIPTOR*)SystemMemoryMap.Descriptor,
                                 &SystemMemoryMap.Key,
                                 &SystemMemoryMap.DescriptorSize,
                                 &SystemMemoryMap.Version );
@@ -211,11 +152,10 @@ UefiMain(
         SystemMemoryMap.MapSize / SystemMemoryMap.DescriptorSize;
 
     ULONG64 MaxAddress = 0;
-
-    EFI_MEMORY_DESCRIPTOR* Desc = SystemMemoryMap.Descriptor;
+    BL_EFI_MEMORY_DESCRIPTOR* Desc = SystemMemoryMap.Descriptor;
 
 #define SsGetNextDescriptor(desc, size)                                        \
-  ((EFI_MEMORY_DESCRIPTOR*)(((UINT8*)(desc)) + size))
+  ((BL_EFI_MEMORY_DESCRIPTOR*)(((UINT8*)(desc)) + size))
 
     //
     // we will get the highest memory address that is available to us
@@ -226,9 +166,10 @@ UefiMain(
         {
             case EfiConventionalMemory:
             case EfiPersistentMemory:
+            //case EfiBootServicesCode:
+            //case EfiBootServicesData:
             {
-                ULONG64 End =
-                    Desc->PhysicalStart + ( Desc->NumberOfPages * DEFAULT_PAGE_SIZE );
+                ULONG64 End = Desc->PhysicalStart + ( Desc->NumberOfPages * MM_PAGE_SIZE );
                 if( End > MaxAddress )
                 {
                     MaxAddress = End;
@@ -250,7 +191,7 @@ UefiMain(
     // allocate memory for PFN entries
     //
     ULONG64 PfnSize = SsPfnCount * sizeof( PFN_ENTRY );
-    ULONG64 PagesNeeded = ( PfnSize + DEFAULT_PAGE_SIZE - 1 ) / DEFAULT_PAGE_SIZE;
+    ULONG64 PagesNeeded = ( PfnSize + MM_PAGE_SIZE - 1 ) / MM_PAGE_SIZE;
     ULONG64 PfnBase = 0;
 
     EFI_STATUS PfnAlloc = gBS->AllocatePages(
@@ -275,29 +216,32 @@ UefiMain(
 
     SsPfnFreeHead = 0xffffff;
 
-    FreePool( SystemMemoryMap.Descriptor );
+    FreePool(SystemMemoryMap.Descriptor);
+    SystemMemoryMap.Descriptor = NULL;
+    SystemMemoryMap.MapSize = 0;
 
     // get size of memory map
-    MemMap = gBS->GetMemoryMap( &SystemMemoryMap.MapSize,
-                                           SystemMemoryMap.Descriptor,
-                                           &SystemMemoryMap.Key,
-                                           &SystemMemoryMap.DescriptorSize,
-                                           &SystemMemoryMap.Version );
+    MemMap = gBS->GetMemoryMap(&SystemMemoryMap.MapSize,
+        NULL,
 
-    if( MemMap != EFI_BUFFER_TOO_SMALL )
+        &SystemMemoryMap.Key,
+        &SystemMemoryMap.DescriptorSize,
+        &SystemMemoryMap.Version);
+
+    if (MemMap != EFI_BUFFER_TOO_SMALL)
     {
-        DBG_ERROR( MemMap, L"Failed init Memory Map" );
-        getc( );
+        DBG_ERROR(MemMap, L"Failed init Memory Map");
+        getc();
         return 1;
     }
 
     // allocate memory for memory map
     SystemMemoryMap.MapSize += 2 * SystemMemoryMap.DescriptorSize;
-    SystemMemoryMap.Descriptor = AllocateZeroPool( SystemMemoryMap.MapSize );
+    SystemMemoryMap.Descriptor = (PBL_EFI_MEMORY_DESCRIPTOR)AllocateZeroPool( SystemMemoryMap.MapSize );
 
     // get memory map
     MemMap = gBS->GetMemoryMap( &SystemMemoryMap.MapSize,
-                                SystemMemoryMap.Descriptor,
+                                (EFI_MEMORY_DESCRIPTOR*)SystemMemoryMap.Descriptor,
                                 &SystemMemoryMap.Key,
                                 &SystemMemoryMap.DescriptorSize,
                                 &SystemMemoryMap.Version );
@@ -322,7 +266,7 @@ UefiMain(
     {
         ULONG64 Start = Desc->PhysicalStart;
         ULONG64 PageCount = Desc->NumberOfPages;
-        ULONG64 End = Start + PageCount * DEFAULT_PAGE_SIZE;
+        ULONG64 End = Start + PageCount * MM_PAGE_SIZE;
 
         switch( Desc->Type )
         {
@@ -331,8 +275,8 @@ UefiMain(
             // not mapping them.
             case EfiConventionalMemory:
             case EfiPersistentMemory:
-            // case EfiBootServicesCode:
-            // case EfiBootServicesData:
+             //case EfiBootServicesCode:
+             //case EfiBootServicesData:
             {
                 ULONG64 StartPFN = PHYSICAL_TO_PFN( Start );
                 ULONG64 EndPFN = PHYSICAL_TO_PFN( End );
@@ -367,101 +311,155 @@ UefiMain(
         return 1;
     }
 
-    DBG_INFO(
-        L"PML4 Physical -> %p, MaxAddress -> %p\n", Pml4Physical, MaxAddress );
-
-    DirectMapRange( 0, MaxAddress );
-
-    __writecr3( Pml4Physical );
-
-    DBG_INFO(L"Has not crashed!\n");
-
+    DBG_INFO(L"PML4 Physical -> %p, MaxAddress -> %p\n", Pml4Physical, MaxAddress );
 
     ULONG64 NewStack;
-
     AllocatePage( &NewStack );
 
-    EFI_STATUS St = MapPage( KERNEL_VA_STACK, NewStack, PAGE_FLAG_PRESENT | PAGE_FLAG_RW  );
+    EFI_STATUS St = MmMapPage( KERNEL_VA_STACK, NewStack, MmReadWriteExecuteProtection );
     if (EFI_ERROR(St))
     {
         DBG_ERROR(St, L"Failed\n");
     }
 
-    ULONG64 CodePage;
-
-    AllocatePage( &CodePage );
-
-    MapPage( KERNEL_VA_BASE, CodePage, PAGE_FLAG_PRESENT | PAGE_FLAG_RW );
-
-    if( EFI_ERROR( MappingExists( Pml4Physical, KERNEL_VA_BASE ) ) )
-    {
-        DBG_ERROR( L"Error", L"Code page doesnt exit\n" );
-    }
-
-    if( EFI_ERROR( MappingExists( Pml4Physical, KERNEL_VA_STACK ) ) )
+    if( EFI_ERROR( MmMappingExists( (ULONG64)gPML4, KERNEL_VA_STACK ) ) )
     {
         DBG_ERROR( L"Error", L"Stack page doesnt exit\n" );
     }
 
-    ULONG64 SwitchPage = ALIGN_PAGE( &__switchcr3 );
-    MapPage( SwitchPage, SwitchPage, PAGE_FLAG_PRESENT | PAGE_FLAG_RW );
+    ULONG64 TransitionFunctionLength = (ULONG64)(scouse_transition_address_space_end - scouse_transition_address_space_start);
 
-    if( EFI_ERROR( MappingExists( Pml4Physical, SwitchPage ) ) )
+    ULONG64 TransitionPage;
+    St = AllocatePage(&TransitionPage);
+    if (EFI_ERROR(St))
     {
-        DBG_ERROR( L"Error", L"Switch page doesnt exit\n" );
+        Print(L"Transition alloc err %r\n", St);
+    }
+    CopyMem((PVOID)TransitionPage, scouse_transition_address_space_start, TransitionFunctionLength);
+    MmMapPage(TransitionPage, TransitionPage, MmReadWriteExecuteProtection);
+
+    SCOUSE_TRANSITION_ADDRESS_SPACE Transition = (SCOUSE_TRANSITION_ADDRESS_SPACE)(ULONG64)TransitionPage;
+
+    MapKernelPage( KernelImage.Base, KernelImage.VirtualBase );
+
+    PBOOT_INFO BootInfo = NULL;
+    St = gBS->AllocatePool(EfiLoaderData, sizeof(*BootInfo), (void**)&BootInfo);
+    if (EFI_ERROR(St))
+    {
+        Print(L"%r bootinfo\n", St);
+        getc();
+        return St;
     }
 
-    Print( L"SwitchPage->%p, Switchaddr->%p\n", SwitchPage, &__switchcr3 );
-
-    ULONG64 start = __readtscserial( );
-
-    EFI_STATUS st = gBS->Stall( 1000000 );
-    if( EFI_ERROR( st ) )
-        return st;
-
-    ULONG64 end = __readtscserial( );
-
-    ULONG64 frequency = end - start;
-
-    Print( L"Cycles per sec -> %llu\n", frequency );
-
-    BlDbgBreak();
-
-    MapKernel(  KernelImage.Base, KernelImage.VirtualBase );
-    __writecr3( Pml4Physical );
-
-    BOOT_INFO* BootInfo = NULL;
-
-    AllocatePage(BootInfo);
+    ZeroMem(BootInfo, sizeof(*BootInfo));
 
     BootInfo->DirectMapBase = 0;
     BootInfo->Pml4Physical = Pml4Physical;
     BootInfo->PfnArrayPhysical = (ULONG64)SsPfn;
     BootInfo->PfnCount = SsPfnCount;
     BootInfo->PfnFreeHead = SsPfnFreeHead;
+    BootInfo->MmuStressLog.Length = 0;
+    BootInfo->MmuStressLog.Capacity = MMU_STRESS_LOG_TEXT_SIZE;
+    BootInfo->MmuStressLog.Text[0] = '\0';
 
-    Print( L"Pml4 physicall ... %llu\n", Pml4Physical);
+/*    ULONG64 HeapPhysicalBase = 0;
+    ULONG64 HeapLength = 0;
 
-    typedef int (*KernelCall)(EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL*, PBOOT_INFO);
-    KernelCall KEntry = (KernelCall)(KernelImage.VirtualBase + KernelImage.EntryPoint);
+    Status = BlAllocateMmuStressArena(&HeapPhysicalBase, &HeapLength);
+    if (EFI_ERROR(Status))
+    {
+        DBG_ERROR(Status, L"Failed to allocate MMU stress arena\n");
+        return Status;
+    }
 
-   /* __switchcr3( Pml4Physical & ~0xFFF, KERNEL_VA_STACK_TOP, KERNEL_VA_BASE + ( KernelImage.EntryPoint ) );*/
+    Status = BlBuildMmuStressSpaces(BootInfo, HeapPhysicalBase, HeapLength);
+    if (EFI_ERROR(Status))
+    {
+        DBG_ERROR(Status, L"Failed to build MMU stress spaces\n");
+        return Status;
+    }*/
+/*
+    BlDumpLargestConventionalRegion(BootInfo);
 
-    int ReturnValue = KEntry( gST->ConOut, BootInfo);
+    getc();*/
 
-    Print( L"Kernel returned %d\n", BootInfo );
-
-    CPUINFO CpuInfo; 
-    GetCpuInfo( &CpuInfo );
-
-    Print(L"Cpu info: %a, %a\r\n", CpuInfo.Vendor, CpuInfo.Brand);
-
-
-
-    getc( );
+    Print(L"Press a key to jump to kernel");
     getc();
 
+    St = BlGopPrepareGraphics(0, &BootInfo->FrameBufferDescriptor);
+    if (SC_FAILED(St))
+    {
+        Print(L"Failed prepare graphics\n");
+    }
 
+    MmMapRange(
+        MM_PAGE_ALIGN_DOWN((ULONG64)BootInfo),
+        MM_PAGE_ALIGN_DOWN((ULONG64)BootInfo),
+        MM_PAGE_ALIGN_UP(sizeof(*BootInfo) + ((ULONG64)BootInfo & MM_PAGE_MASK)),
+        MmReadWriteExecuteProtection
+    );
+
+    MmMapRange(
+        MM_PAGE_ALIGN_DOWN((ULONG64)SsPfn),
+        MM_PAGE_ALIGN_DOWN((ULONG64)SsPfn),
+        MM_PAGE_ALIGN_UP(PagesNeeded* MM_PAGE_SIZE),
+        MmReadWriteExecuteProtection
+    );
+
+    if (
+        !MmMappingExists((ULONG64)gPML4, BootInfo->FrameBufferDescriptor.FrameBufferBase)
+    ) 
+    {
+        MmMapRange(
+            BootInfo->FrameBufferDescriptor.FrameBufferBase,
+            BootInfo->FrameBufferDescriptor.FrameBufferBase,
+            BootInfo->FrameBufferDescriptor.FrameBufferSize,
+            MmReadWriteExecuteProtection | MmStrongUncacheablePagePolicy
+        );
+
+        if (!MmMappingExists((ULONG64)gPML4, BootInfo->FrameBufferDescriptor.FrameBufferBase))
+        {
+            Print(L"Failed to map frame buffer base\n");
+            getc();
+        }
+    }
+
+    if ( !MmMappingExists((ULONG64)gPML4, (ULONG64)&BootInfo->FrameBufferDescriptor ) )
+    {
+        DBG_ERROR(L"Error", L"Frame buffer dsecriptor not mapped! ... 0x%llx, 0x%llx\n", &BootInfo->FrameBufferDescriptor, BootInfo->FrameBufferDescriptor);
+        getc();
+    }
+
+    Status = BlAllocateStresserPhysical(
+        BootInfo,
+        sizeof(gMmuTestingDescriptors) / sizeof(gMmuTestingDescriptors[0])
+    );
+    if (EFI_ERROR(Status))
+    {
+        Print(L"[%r] Failed to build MMU stress arena\n", Status);
+        getc();
+        return Status;
+    }
+
+    ULONG64 ReturnValue = Transition(Pml4Physical, KERNEL_VA_STACK_TOP, KernelImage.VirtualBase + KernelImage.EntryPoint, BootInfo);
+
+    Print(L"\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nRet val %d\n", ReturnValue); //this messes with the frame buffer, breaking the display.
+
+    Print(L"Kernel returned: %llu\n", ReturnValue);
+    Print(L"MMU log length: %llu bytes\n", BootInfo->MmuStressLog.Length);
+
+    EFI_STATUS LogStatus = BlDumpCpuAndMmuStressLogToFile(BootInfo, L"\\mmu_stress.txt");
+    if (EFI_ERROR(LogStatus))
+    {
+        Print(L"Failed to write \\mmu_stress.txt : %r\n", LogStatus);
+    }
+    else
+    {
+        Print(L"Wrote \\mmu_stress.txt successfully\n");
+    }
+
+    getc();
+    getc();
 
     return EFI_SUCCESS;
 }
@@ -481,6 +479,18 @@ InitalSetup(
         return err;
     }
 
+    SCSTATUS St = BlGopInit();
+    if (EFI_ERROR(St))
+    {
+        DBG_ERROR(St, "Failed to set initialise GOP\n");
+    }
+
+    St = BlGopSetMode(0);
+    if (EFI_ERROR(St))
+    {
+        DBG_ERROR(St, "Failed to set gop mode to %d\n", 0);
+    }
+
     DBG_INFO( L"handle-> %p\n", LoadedIamge->ImageBase );
 
     EFI_TIME time;
@@ -495,7 +505,7 @@ InitalSetup(
            time.Second,
            time.Nanosecond );
 
-    BlDbgBreak();
+    //BlDbgBreak();
 
     CPUINFO CpuInfo;
 

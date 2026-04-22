@@ -1,0 +1,69 @@
+#ifndef SHRD_STATUS_H
+#define SHRD_STATUS_H
+
+#include <scouse/shared/typedefs.h>
+
+typedef ULONG32 SCSTATUS;
+
+#define SC_SEVERITY_SHIFT 30
+#define SC_SCOPE_SHIFT 16
+
+#define SC_SEVERITY_OK    0
+#define SC_SEVERITY_WARN  1
+#define SC_SEVERITY_ERROR 2
+#define SC_SEVERITY_FATAL 3
+
+#define SC_MAKE_STATUS( Severity, Scope, Code )                      \
+    ( ( ( (SCSTATUS)( Severity ) & 0x3 ) << SC_SEVERITY_SHIFT )    | \
+      ( ( (SCSTATUS)( Scope ) & 0x3FFF ) << SC_SCOPE_SHIFT )       | \
+        ( (SCSTATUS)( Code ) & 0xFFFF ) )
+
+#define SC_SEVERITY_FROM_STATUS( Status ) ( ( ( (SCSTATUS)( Status ) ) >> SC_SEVERITY_SHIFT ) & 0x3 )
+#define SC_SCOPE_FROM_STATUS( Status )    ( ( ( (SCSTATUS)( Status ) ) >> SC_SCOPE_SHIFT ) & 0x3FFF )
+#define SC_CODE_FROM_STATUS( Status )         ( (SCSTATUS)( Status ) & 0xFFFF )
+
+#define SC_OK                  ( SC_MAKE_STATUS( SC_SEVERITY_OK, 0, 0 ) )
+#define SC_FAILED( Status )    ( SC_SEVERITY_FROM_STATUS( Status ) >= SC_SEVERITY_ERROR )
+#define SC_SUCCEEDED( Status ) ( !SC_FAILED( Status ) )
+
+typedef enum _SC_SCOPE
+{
+    SC_SCOPE_GENERAL,
+    SC_SCOPE_ARCH,
+    SC_SCOPE_KRNL,
+    SC_SCOPE_MM,
+    SC_SCOPE_MSR,
+    SC_SCOPE_PMU,
+    SC_SCOPE_BL,
+    SC_SCOPE_EFI
+} SC_SCOPE;
+
+typedef enum _SC_CODE
+{
+    SC_CODE_SUCCESS,
+    SC_CODE_UNSUPPORTED,
+    SC_CODE_INVALID_PARAM,
+    SC_CODE_NO_MEMORY,
+    SC_CODE_NOT_FOUND,
+    SC_CODE_ALREADY_EXISTS,
+    SC_CODE_TIMEOUT,
+    SC_CODE_UNKNOWN_ERROR
+} SC_CODE;
+
+
+#define SC_UNSUPPORTED       ( SC_MAKE_STATUS( SC_SEVERITY_ERROR, SC_SCOPE_GENERAL, SC_CODE_UNSUPPORTED ) )
+#define SC_INVALID_PARAMETER ( SC_MAKE_STATUS( SC_SEVERITY_ERROR, SC_SCOPE_GENERAL, SC_CODE_INVALID_PARAM ) )
+
+#define SC_PMU_UNSUPPORTED   ( SC_MAKE_STATUS( SC_SEVERITY_ERROR, SC_SCOPE_PMU, SC_CODE_UNSUPPORTED ) )
+
+
+#define SC_GOP_UNSUPPORTED   ( SC_MAKE_STATUS( SC_SEVERITY_ERROR, SC_SCOPE_BL, SC_CODE_UNSUPPORTED ))
+#define SC_GOP_UNINITIALISED ( SC_MAKE_STATUS( SC_SEVERITY_ERROR, SC_SCOPE_BL, SC_CODE_NOT_FOUND ))
+
+
+
+
+
+
+#endif // !SHRD_STATUS_H
+

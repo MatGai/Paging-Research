@@ -27,7 +27,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\scouse\shared\bootinfo.h" />
     <ClInclude Include="include\scouse\shared\cpuinfo.h" />
+    <ClInclude Include="include\scouse\shared\status.h" />
     <ClInclude Include="include\scouse\shared\typedefs.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -101,11 +103,13 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(ProjectDir)include</IncludePath>
+    <IncludePath>$(ProjectDir)include;$(SolutionDir)shared\include;$(SolutionDir)libs\runtime\include;$(SolutionDir)libs\archx64\include;%(AdditionalIncludeDirectories)</IncludePath>
     <ExternalIncludePath />
     <ReferencePath />
     <LibraryPath />
     <LibraryWPath />
+    <ExecutablePath>
+    </ExecutablePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='IDA|x64'">
     <IncludePath>$(ProjectDir)include</IncludePath>

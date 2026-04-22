@@ -288,8 +288,8 @@ readmsr_ret:
 		lfence
 		ret
 
-	global _scouse_rdstc
-	_scouse_rdstc:
+	global _scouse_rdtsc
+	_scouse_rdtsc:
 		rdtsc
 		shl rdx, 32
 		or rax, rdx
@@ -300,5 +300,10 @@ readmsr_ret:
 		rdtscp
 		shl rdx, 32
 		or rax, rdx 
+		ret
+
+	global _scouse_readrsp
+	_scouse_readrsp
+		mov rax, rsp
 		ret
 

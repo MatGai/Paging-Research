@@ -113,7 +113,7 @@
     <OutDir>$(SolutionDir)out\$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='IDA|x64'">
-    <LinkIncremental>true</LinkIncremental>
+    <LinkIncremental>false</LinkIncremental>
     <IncludePath />
     <LibraryPath />
     <SourcePath>$(ProjectDir)</SourcePath>
@@ -178,14 +178,14 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FunctionLevelLinking>false</FunctionLevelLinking>
+      <IntrinsicFunctions>false</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
       <OmitFramePointers>true</OmitFramePointers>
-      <ExceptionHandling>SyncCThrow</ExceptionHandling>
+      <ExceptionHandling>false</ExceptionHandling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <LanguageStandard_C>stdc11</LanguageStandard_C>
@@ -195,6 +195,7 @@
       <AdditionalIncludeDirectories>$(ProjectDir)include;$(SolutionDir)shared\include;$(SolutionDir)libs\runtime\include;$(SolutionDir)libs\archx64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <CompileAs>CompileAsC</CompileAs>
       <WholeProgramOptimization>false</WholeProgramOptimization>
+      <Optimization>Disabled</Optimization>
     </ClCompile>
     <Link>
       <SubSystem>Native</SubSystem>
@@ -219,6 +220,9 @@
     <ProjectReference>
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
+    <PostBuildEvent>
+      <Command>powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(SolutionDir)copy.ps1" -Src $(SolutionDir)out\$(Platform)\$(Configuration)</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='IDA|x64'">
     <ClCompile>
@@ -241,7 +245,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Native</SubSystem>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <EnableCOMDATFolding>false</EnableCOMDATFolding>
       <OptimizeReferences>false</OptimizeReferences>
       <GenerateDebugInformation>DebugFastLink</GenerateDebugInformation>
       <EntryPointSymbol>KernelMain</EntryPointSymbol>
@@ -252,8 +256,7 @@
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
       <OutputFile>$(SolutionDir)out\$(Platform)\$(Configuration)\$(TargetName)$(TargetExt)</OutputFile>
       <ProgramDatabaseFile>$(SolutionDir)out\$(Platform)\$(Configuration)\$(TargetName).pdb</ProgramDatabaseFile>
-      <AdditionalDependencies>
-      </AdditionalDependencies>
+      <AdditionalDependencies>archx64.lib;runtime.lib;</AdditionalDependencies>
       <Driver>
       </Driver>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
@@ -267,21 +270,23 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FunctionLevelLinking>false</FunctionLevelLinking>
+      <IntrinsicFunctions>false</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
       <OmitFramePointers>true</OmitFramePointers>
-      <ExceptionHandling>SyncCThrow</ExceptionHandling>
+      <ExceptionHandling>false</ExceptionHandling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <LanguageStandard_C>stdc11</LanguageStandard_C>
       <DebugInformationFormat>None</DebugInformationFormat>
       <ControlFlowGuard>false</ControlFlowGuard>
-      <AdditionalIncludeDirectories>$(ProjectDir)include;$(SolutionDir)shared\include;$(SolutionDir)libs\runtime\include;$(SolutionDir)libs\archx64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)include;$(SolutionDir)shared\include;$(SolutionDir)libs\runtime\include;$(SolutionDir)libs\archx64\include;</AdditionalIncludeDirectories>
       <CompileAs>CompileAsC</CompileAs>
+      <PrecompiledHeaderFile />
+      <StringPooling>true</StringPooling>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -296,7 +301,7 @@
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
       <OutputFile>$(SolutionDir)out\$(Platform)\$(Configuration)\$(TargetName)$(TargetExt)</OutputFile>
       <AdditionalLibraryDirectories>$(SolutionDir)out\$(Platform)\$(Configuration)\</AdditionalLibraryDirectories>
-      <AdditionalDependencies>runtime.lib;archx64.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>runtime.lib;archx64.lib;</AdditionalDependencies>
     </Link>
     <ProjectReference>
       <LinkLibraryDependencies>false</LinkLibraryDependencies>
@@ -304,11 +309,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="entry.c" />
-    <ClCompile Include="pagemanager.c" />
     <ClCompile Include="strser.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\pagemanager.h" />
     <ClInclude Include="include\strser.h" />
     <ClInclude Include="include\timer.h" />
   </ItemGroup>

@@ -20,7 +20,7 @@ BlLdrLoadPEImageFile(
     LastError = BlFindFile( ImagePath, &ImageFileHandle );
     if( EFI_ERROR( LastError ) )
     {
-        ImageFileHandle->Close( ImageFileHandle );
+        //ImageFileHandle->Close( ImageFileHandle );
         return LastError;
     }
 
@@ -66,13 +66,13 @@ BlLdrAllocatePEImagePages(
     _Out_ EFI_PHYSICAL_ADDRESS* ImagePagesPhysical
 )
 {
-    if( FileImage == NULL || ImagePagesPhysical == NULL || ImagePages == NULL )
+    if (FileImage == NULL || ImagePagesPhysical == NULL || ImagePages == NULL)
     {
         return EFI_INVALID_PARAMETER;
     }
 
-    PEFI_IMAGE_NT_HEADERS FileNtHeaders = EFI_IMAGE_NTHEADERS( FileImage->File );
-    ULONG64 Pages = EFI_SIZE_TO_PAGES( FileNtHeaders->OptionalHeader.SizeOfImage );
+    PEFI_IMAGE_NT_HEADERS FileNtHeaders = EFI_IMAGE_NTHEADERS(FileImage->File);
+    ULONG64 Pages = EFI_SIZE_TO_PAGES(FileNtHeaders->OptionalHeader.SizeOfImage);
     //*ImagePagesPhysical = FileNtHeaders->OptionalHeader.ImageBase;
 
     EFI_PHYSICAL_ADDRESS ImageBase = FileNtHeaders->OptionalHeader.ImageBase;
@@ -83,19 +83,19 @@ BlLdrAllocatePEImagePages(
     // address to preferred virtual base is unrealistic so just allocate anywhere on physical!
     //
     //gBS->AllocatePages(AllocateAnyPages/*AllocateAddress*/, EfiBootServicesCode, Pages, ImagePagesPhysical);
-    EFI_STATUS PageStatus = gBS->AllocatePages( AllocateAnyPages/*AllocateAddress*/, EfiBootServicesCode, Pages, &ImageBase );
+    EFI_STATUS PageStatus = gBS->AllocatePages(AllocateAnyPages/*AllocateAddress*/, EfiBootServicesCode, Pages, &ImageBase);
 
-    if( EFI_ERROR( PageStatus ) )
+    if (EFI_ERROR(PageStatus))
     {
-        if( PageStatus == EFI_NOT_FOUND )
+        if (PageStatus == EFI_NOT_FOUND)
         {
 
             //
             // I guess we can try prefered?
             //
-            PageStatus = gBS->AllocatePages(/*AllocateAnyPages*/AllocateAddress, EfiBootServicesCode, Pages, &ImageBase );
+            PageStatus = gBS->AllocatePages(/*AllocateAnyPages*/AllocateAddress, EfiBootServicesCode, Pages, &ImageBase);
 
-            if( EFI_ERROR( PageStatus ) )
+            if (EFI_ERROR(PageStatus))
             {
                 //
                 // we failed to allocate memory for the image
@@ -109,15 +109,15 @@ BlLdrAllocatePEImagePages(
         }
     }
 
-    // not really needed...i hope...
+    // not really needed...Index hope...
     //ZeroMem(
     //	*ImagePagesPhysical,
     //	(Pages << EFI_PAGE_SHIFT)
     //);
 
     CopyMem(
-        ( PVOID )( UINTN )ImageBase,
-        ( PVOID )FileImage->File,
+        (PVOID)(UINTN)ImageBase,
+        (PVOID)FileImage->File,
         FileNtHeaders->OptionalHeader.SizeOfHeaders
     );
 
@@ -126,7 +126,7 @@ BlLdrAllocatePEImagePages(
     // virtual address will be the same as the physical
     //
     *ImagePagesPhysical = ImageBase;
-    *ImagePages = ( PBYTE )( UINTN )ImageBase;
+    *ImagePages = (PBYTE)(UINTN)ImageBase;
 
     return EFI_SUCCESS;
 }
@@ -177,18 +177,18 @@ BlLdrLoadPEImage64(
         return BL_STATUS_GENERIC_ERROR;
     }
 
-    if( BL_ERROR( BlLdrImageRelocation( &FileImage, Image, 0xFFFF800000000000ULL ) ) )
+    EFI_IMAGE_DOS_HEADER* ImageDosHeader = (EFI_IMAGE_DOS_HEADER*)Image;
+    EFI_IMAGE_NT_HEADERS* ImageNtHeaders = (EFI_IMAGE_NT_HEADERS*)((ULONG64)Image + ImageDosHeader->e_lfanew);
+
+    if( BL_ERROR( BlLdrImageRelocation( Image, ImageNtHeaders->OptionalHeader.ImageBase ) ) )
     {
         return BL_STATUS_GENERIC_ERROR;
     }
 
-    EFI_IMAGE_DOS_HEADER* ImageDosHeader = ( EFI_IMAGE_DOS_HEADER* )Image;
-    EFI_IMAGE_NT_HEADERS* ImageNtHeaders = ( EFI_IMAGE_NT_HEADERS* )( ( ULONG64 )Image + ImageDosHeader->e_lfanew );
-
-    LoadedImageInfo->Base = ( ULONG64 )Image;
-    LoadedImageInfo->EntryPoint = ( ULONG64 )ImageNtHeaders->OptionalHeader.AddressOfEntryPoint;
+    LoadedImageInfo->Base        = ( ULONG64 )Image;
+    LoadedImageInfo->EntryPoint  = ( ULONG64 )ImageNtHeaders->OptionalHeader.AddressOfEntryPoint;
     LoadedImageInfo->VirtualBase = ( ULONG64 )ImageNtHeaders->OptionalHeader.ImageBase;
-    LoadedImageInfo->Size = ( ULONG64 )ImageNtHeaders->OptionalHeader.SizeOfImage;
+    LoadedImageInfo->Size        = ( ULONG64 )ImageNtHeaders->OptionalHeader.SizeOfImage;
 
     return BL_STATUS_OK;
 }
@@ -222,7 +222,7 @@ BlLdrAlignFileImage(
     // loop through each section and copy its raw data to the appropriate offset
     // in the new memory buffer based on the sections virtual address
     //
-    for( UINT64 i = 0; i < ImageNtHeaders->FileHeader.NumberOfSections; i++ )
+    for( ULONG64 i = 0; i < ImageNtHeaders->FileHeader.NumberOfSections; i++ )
     {
         EFI_IMAGE_SECTION_HEADER* CurrentSection = &FileSectionHeader[ i ];
 
@@ -253,87 +253,80 @@ BlLdrAlignFileImage(
 EFI_STATUS
 BLAPI
 BlLdrImageRelocation(
-    _In_    PBL_LDR_FILE_IMAGE FileImage,
     _Inout_ PBYTE Image,
-    _In_	ULONG64 RuntimeVA
+    _In_	ULONG64 RuntimeVirtual
 )
 {
-    if (!Image || !FileImage)
+    if (!Image)
     {
         return EFI_INVALID_PARAMETER;
     }
 
-    if (PeIsValidImage(Image) == FALSE)
+    if (!PeIsValidImage(Image))
     {
         return BL_STATUS_INVALID_PE_IMAGE;
     }
 
-    // kernel mapped identity -> 
+    EFI_IMAGE_DOS_HEADER* Dos = (EFI_IMAGE_DOS_HEADER*)Image;
+    EFI_IMAGE_NT_HEADERS* Nt = (EFI_IMAGE_NT_HEADERS*)(Image + Dos->e_lfanew);
 
-    EFI_IMAGE_DOS_HEADER* ImageDosHeader = (EFI_IMAGE_DOS_HEADER*)Image;
-    EFI_IMAGE_NT_HEADERS* ImageNtHeaders = (EFI_IMAGE_NT_HEADERS*)(Image + ImageDosHeader->e_lfanew);
-
-    if (((UINT64)Image != ImageNtHeaders->OptionalHeader.ImageBase) && (ImageNtHeaders->OptionalHeader.NumberOfRvaAndSizes > EFI_IMAGE_DIRECTORY_ENTRY_BASERELOC))
+    if (Nt->OptionalHeader.NumberOfRvaAndSizes <= EFI_IMAGE_DIRECTORY_ENTRY_BASERELOC)
     {
+        return EFI_SUCCESS;
+    }
 
-        EFI_IMAGE_BASE_RELOCATION* ImageBaseRelocation = (EFI_IMAGE_BASE_RELOCATION*)(Image + (ULONG64)ImageNtHeaders->OptionalHeader.DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress);
-        EFI_IMAGE_BASE_RELOCATION* ImageBaseRelocationEnd = (EFI_IMAGE_BASE_RELOCATION*)(Image + (ULONG64)ImageNtHeaders->OptionalHeader.DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_BASERELOC].Size + (ULONG64)ImageNtHeaders->OptionalHeader.DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress);
+    ULONG64 PreferredBase = Nt->OptionalHeader.ImageBase;
+    LONG64 Delta = (LONG64)RuntimeVirtual - (LONG64)PreferredBase;
 
-        ULONG64 RelativeOffset;
+    if (Delta == 0)
+    {
+        return EFI_SUCCESS;
+    }
 
-        if ((UINT64)Image > ImageNtHeaders->OptionalHeader.ImageBase)
+    EFI_IMAGE_DATA_DIRECTORY* RelocDir =
+        &Nt->OptionalHeader.DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_BASERELOC];
+
+    if (RelocDir->VirtualAddress == 0 || RelocDir->Size == 0)
+    {
+        return EFI_SUCCESS;
+    }
+
+    EFI_IMAGE_BASE_RELOCATION* Block =
+        (EFI_IMAGE_BASE_RELOCATION*)(Image + RelocDir->VirtualAddress);
+
+    EFI_IMAGE_BASE_RELOCATION* End =
+        (EFI_IMAGE_BASE_RELOCATION*)((UINT8*)Block + RelocDir->Size);
+
+    while ((Block < End) && Block->SizeOfBlock)
+    {
+        UINT16* Entry = (UINT16*)((UINT8*)Block + EFI_IMAGE_SIZEOF_BASE_RELOCATION);
+        ULONG64 Count = (Block->SizeOfBlock - EFI_IMAGE_SIZEOF_BASE_RELOCATION) / sizeof(UINT16);
+
+        for (ULONG64 Index = 0; Index < Count; ++Index)
         {
-            RelativeOffset = (UINT64)Image - ImageNtHeaders->OptionalHeader.ImageBase;
-        }
-        else
-        {
-            RelativeOffset = ImageNtHeaders->OptionalHeader.ImageBase - (UINT64)Image;
-        }
+            UINT16 Type   = Entry[Index] >> 12;
+            UINT16 Offset = Entry[Index] & 0x0FFF;
 
-        ULONG64 NumberOfRelocations;
-
-        for (; (ImageBaseRelocation->SizeOfBlock) && (ImageBaseRelocation < ImageBaseRelocationEnd); )
-        {
-            EFI_PHYSICAL_ADDRESS Page = (UINT64)Image + (ULONG64)ImageBaseRelocation->VirtualAddress;
-            UINT16* DataToFix = (UINT16*)((UINT8*)ImageBaseRelocation + EFI_IMAGE_SIZEOF_BASE_RELOCATION);
-            NumberOfRelocations = (ImageBaseRelocation->SizeOfBlock - EFI_IMAGE_SIZEOF_BASE_RELOCATION) / sizeof(UINT16);
-
-            for (UINT64 i = 0; i < NumberOfRelocations; i++)
+            switch (Type)
             {
-                UINT16 DataType = DataToFix[i] >> 12;
-                switch (DataType)
-                {
                 case EFI_IMAGE_REL_BASED_ABSOLUTE:
                 {
                     break;
                 }
-
                 case EFI_IMAGE_REL_BASED_DIR64:
                 {
-                    if ((UINT64)Image > ImageNtHeaders->OptionalHeader.ImageBase)
-                    {
-                        *((UINT64*)((UINT8*)Page + (DataToFix[i] & EFI_PAGE_MASK))) += RelativeOffset;
-                    }
-                    else
-                    {
-                        *((UINT64*)((UINT8*)Page + (DataToFix[i] & EFI_PAGE_MASK))) -= RelativeOffset;
-                    }
+                    ULONG64* Fixup = (ULONG64*)(Image + Block->VirtualAddress + Offset);
+                    *Fixup        = (ULONG64)((LONG64)(*Fixup) + Delta);
                     break;
                 }
-
                 default:
                 {
                     return BL_STATUS_GENERIC_ERROR;
-                    break;
                 }
-                }
-
             }
-            //
-            // Get the next relocation chunk
-            //
-            ImageBaseRelocation = (EFI_IMAGE_BASE_RELOCATION*)((UINT8*)ImageBaseRelocation + ImageBaseRelocation->SizeOfBlock);
         }
+
+        Block = (EFI_IMAGE_BASE_RELOCATION*)((UINT8*)Block + Block->SizeOfBlock);
     }
 
     return EFI_SUCCESS;

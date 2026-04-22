@@ -13,13 +13,9 @@
     <ClCompile Include="strser.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="pagemanager.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\timer.h" />
     <ClInclude Include="include\strser.h" />
-    <ClInclude Include="include\pagemanager.h" />
   </ItemGroup>
 </Project>

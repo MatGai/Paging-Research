@@ -1,5 +1,5 @@
-#ifndef CPUINFO_H
-#define CPUINFO_H
+#ifndef SHRD_CPUINFO_H
+#define SHRD_CPUINFO_H
 
 #include <scouse/shared/typedefs.h>
 

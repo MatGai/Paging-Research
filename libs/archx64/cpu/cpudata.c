@@ -3,1256 +3,452 @@
 #include <scouse/runtime/string.h>
 #include <scouse/archx64/intrinsics.h>
 
-static CacheLevelInfo EmptyCacheLevelInfo = { 0 };
+STATIC CacheLevelInfo EmptyCacheLevelInfo = { 0 };
 
-static CacheLevelInfo GetCacheLevelInfo(const uint32_t reg) {
-    const int UNDEF = -1;
-    const int KiB = 1024;
-    const int MiB = 1024 * KiB;
-    switch (reg) {
-    case 0x01:
-        return (CacheLevelInfo) {
-            .level = UNDEF,
-                .cache_type = CPU_FEATURE_CACHE_TLB,
-                .cache_size = 4 * KiB,
-                .ways = 4,
-                .line_size = UNDEF,
-                .tlb_entries = 32,
-                .partitioning = 0
-        };
-    case 0x02:
-        return (CacheLevelInfo) {
-            .level = UNDEF,
-                .cache_type = CPU_FEATURE_CACHE_TLB,
-                .cache_size = 4 * MiB,
-                .ways = 0xFF,
-                .line_size = UNDEF,
-                .tlb_entries = 2,
-                .partitioning = 0
-        };
-    case 0x03:
-        return (CacheLevelInfo) {
-            .level = UNDEF,
-                .cache_type = CPU_FEATURE_CACHE_TLB,
-                .cache_size = 4 * KiB,
-                .ways = 4,
-                .line_size = UNDEF,
-                .tlb_entries = 64,
-                .partitioning = 0
-        };
-    case 0x04:
-        return (CacheLevelInfo) {
-            .level = UNDEF,
-                .cache_type = CPU_FEATURE_CACHE_TLB,
-                .cache_size = 4 * MiB,
-                .ways = 4,
-                .line_size = UNDEF,
-                .tlb_entries = 8,
-                .partitioning = 0
-        };
-    case 0x05:
-        return (CacheLevelInfo) {
-            .level = UNDEF,
-                .cache_type = CPU_FEATURE_CACHE_TLB,
-                .cache_size = 4 * MiB,
-                .ways = 4,
-                .line_size = UNDEF,
-                .tlb_entries = 32,
-                .partitioning = 0
-        };
-    case 0x06:
-        return (CacheLevelInfo) {
-            .level = 1,
-                .cache_type = CPU_FEATURE_CACHE_INSTRUCTION,
-                .cache_size = 8 * KiB,
-                .ways = 4,
-                .line_size = 32,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0x08:
-        return (CacheLevelInfo) {
-            .level = 1,
-                .cache_type = CPU_FEATURE_CACHE_INSTRUCTION,
-                .cache_size = 16 * KiB,
-                .ways = 4,
-                .line_size = 32,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0x09:
-        return (CacheLevelInfo) {
-            .level = 1,
-                .cache_type = CPU_FEATURE_CACHE_INSTRUCTION,
-                .cache_size = 32 * KiB,
-                .ways = 4,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0x0A:
-        return (CacheLevelInfo) {
-            .level = 1,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 8 * KiB,
-                .ways = 2,
-                .line_size = 32,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0x0B:
-        return (CacheLevelInfo) {
-            .level = UNDEF,
-                .cache_type = CPU_FEATURE_CACHE_TLB,
-                .cache_size = 4 * MiB,
-                .ways = 4,
-                .line_size = UNDEF,
-                .tlb_entries = 4,
-                .partitioning = 0
-        };
-    case 0x0C:
-        return (CacheLevelInfo) {
-            .level = 1,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 16 * KiB,
-                .ways = 4,
-                .line_size = 32,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0x0D:
-        return (CacheLevelInfo) {
-            .level = 1,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 16 * KiB,
-                .ways = 4,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0x0E:
-        return (CacheLevelInfo) {
-            .level = 1,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 24 * KiB,
-                .ways = 6,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0x1D:
-        return (CacheLevelInfo) {
-            .level = 2,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 128 * KiB,
-                .ways = 2,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0x21:
-        return (CacheLevelInfo) {
-            .level = 2,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 256 * KiB,
-                .ways = 8,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0x22:
-        return (CacheLevelInfo) {
-            .level = 3,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 512 * KiB,
-                .ways = 4,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 2
-        };
-    case 0x23:
-        return (CacheLevelInfo) {
-            .level = 3,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 1 * MiB,
-                .ways = 8,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 2
-        };
-    case 0x24:
-        return (CacheLevelInfo) {
-            .level = 2,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 1 * MiB,
-                .ways = 16,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0x25:
-        return (CacheLevelInfo) {
-            .level = 3,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 2 * MiB,
-                .ways = 8,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 2
-        };
-    case 0x29:
-        return (CacheLevelInfo) {
-            .level = 3,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 4 * MiB,
-                .ways = 8,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 2
-        };
-    case 0x2C:
-        return (CacheLevelInfo) {
-            .level = 1,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 32 * KiB,
-                .ways = 8,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0x30:
-        return (CacheLevelInfo) {
-            .level = 1,
-                .cache_type = CPU_FEATURE_CACHE_INSTRUCTION,
-                .cache_size = 32 * KiB,
-                .ways = 8,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0x40:
-        return (CacheLevelInfo) {
-            .level = UNDEF,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = UNDEF,
-                .ways = UNDEF,
-                .line_size = UNDEF,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0x41:
-        return (CacheLevelInfo) {
-            .level = 2,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 128 * KiB,
-                .ways = 4,
-                .line_size = 32,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0x42:
-        return (CacheLevelInfo) {
-            .level = 2,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 256 * KiB,
-                .ways = 4,
-                .line_size = 32,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0x43:
-        return (CacheLevelInfo) {
-            .level = 2,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 512 * KiB,
-                .ways = 4,
-                .line_size = 32,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0x44:
-        return (CacheLevelInfo) {
-            .level = 2,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 1 * MiB,
-                .ways = 4,
-                .line_size = 32,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0x45:
-        return (CacheLevelInfo) {
-            .level = 2,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 2 * MiB,
-                .ways = 4,
-                .line_size = 32,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0x46:
-        return (CacheLevelInfo) {
-            .level = 3,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 4 * MiB,
-                .ways = 4,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0x47:
-        return (CacheLevelInfo) {
-            .level = 3,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 8 * MiB,
-                .ways = 8,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0x48:
-        return (CacheLevelInfo) {
-            .level = 2,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 3 * MiB,
-                .ways = 12,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0x49:
-        return (CacheLevelInfo) {
-            .level = 2,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 4 * MiB,
-                .ways = 16,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case (0x49 | (1 << 8)):
-        return (CacheLevelInfo) {
-        .level = 3,
-            .cache_type = CPU_FEATURE_CACHE_DATA,
-            .cache_size = 4 * MiB,
-            .ways = 16,
-            .line_size = 64,
-            .tlb_entries = UNDEF,
-            .partitioning = 0
-    };
-    case 0x4A:
-        return (CacheLevelInfo) {
-            .level = 3,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 6 * MiB,
-                .ways = 12,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0x4B:
-        return (CacheLevelInfo) {
-            .level = 3,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 8 * MiB,
-                .ways = 16,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0x4C:
-        return (CacheLevelInfo) {
-            .level = 3,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 12 * MiB,
-                .ways = 12,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0x4D:
-        return (CacheLevelInfo) {
-            .level = 3,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 16 * MiB,
-                .ways = 16,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0x4E:
-        return (CacheLevelInfo) {
-            .level = 2,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 6 * MiB,
-                .ways = 24,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0x4F:
-        return (CacheLevelInfo) {
-            .level = UNDEF,
-                .cache_type = CPU_FEATURE_CACHE_TLB,
-                .cache_size = 4 * KiB,
-                .ways = UNDEF,
-                .line_size = UNDEF,
-                .tlb_entries = 32,
-                .partitioning = 0
-        };
-    case 0x50:
-        return (CacheLevelInfo) {
-            .level = UNDEF,
-                .cache_type = CPU_FEATURE_CACHE_TLB,
-                .cache_size = 4 * KiB,
-                .ways = UNDEF,
-                .line_size = UNDEF,
-                .tlb_entries = 64,
-                .partitioning = 0
-        };
-    case 0x51:
-        return (CacheLevelInfo) {
-            .level = UNDEF,
-                .cache_type = CPU_FEATURE_CACHE_TLB,
-                .cache_size = 4 * KiB,
-                .ways = UNDEF,
-                .line_size = UNDEF,
-                .tlb_entries = 128,
-                .partitioning = 0
-        };
-    case 0x52:
-        return (CacheLevelInfo) {
-            .level = UNDEF,
-                .cache_type = CPU_FEATURE_CACHE_TLB,
-                .cache_size = 4 * KiB,
-                .ways = UNDEF,
-                .line_size = UNDEF,
-                .tlb_entries = 256,
-                .partitioning = 0
-        };
-    case 0x55:
-        return (CacheLevelInfo) {
-            .level = UNDEF,
-                .cache_type = CPU_FEATURE_CACHE_TLB,
-                .cache_size = 2 * MiB,
-                .ways = 0xFF,
-                .line_size = UNDEF,
-                .tlb_entries = 7,
-                .partitioning = 0
-        };
-    case 0x56:
-        return (CacheLevelInfo) {
-            .level = UNDEF,
-                .cache_type = CPU_FEATURE_CACHE_TLB,
-                .cache_size = 4 * MiB,
-                .ways = 4,
-                .line_size = UNDEF,
-                .tlb_entries = 16,
-                .partitioning = 0
-        };
-    case 0x57:
-        return (CacheLevelInfo) {
-            .level = UNDEF,
-                .cache_type = CPU_FEATURE_CACHE_TLB,
-                .cache_size = 4 * KiB,
-                .ways = 4,
-                .line_size = UNDEF,
-                .tlb_entries = 16,
-                .partitioning = 0
-        };
-    case 0x59:
-        return (CacheLevelInfo) {
-            .level = UNDEF,
-                .cache_type = CPU_FEATURE_CACHE_TLB,
-                .cache_size = 4 * KiB,
-                .ways = 0xFF,
-                .line_size = UNDEF,
-                .tlb_entries = 16,
-                .partitioning = 0
-        };
-    case 0x5A:
-        return (CacheLevelInfo) {
-            .level = UNDEF,
-                .cache_type = CPU_FEATURE_CACHE_TLB,
-                .cache_size = 2 * MiB,
-                .ways = 4,
-                .line_size = UNDEF,
-                .tlb_entries = 32,
-                .partitioning = 0
-        };
-    case 0x5B:
-        return (CacheLevelInfo) {
-            .level = UNDEF,
-                .cache_type = CPU_FEATURE_CACHE_TLB,
-                .cache_size = 4 * KiB,
-                .ways = UNDEF,
-                .line_size = UNDEF,
-                .tlb_entries = 64,
-                .partitioning = 0
-        };
-    case 0x5C:
-        return (CacheLevelInfo) {
-            .level = UNDEF,
-                .cache_type = CPU_FEATURE_CACHE_TLB,
-                .cache_size = 4 * KiB,
-                .ways = UNDEF,
-                .line_size = UNDEF,
-                .tlb_entries = 128,
-                .partitioning = 0
-        };
-    case 0x5D:
-        return (CacheLevelInfo) {
-            .level = UNDEF,
-                .cache_type = CPU_FEATURE_CACHE_TLB,
-                .cache_size = 4 * KiB,
-                .ways = UNDEF,
-                .line_size = UNDEF,
-                .tlb_entries = 256,
-                .partitioning = 0
-        };
-    case 0x60:
-        return (CacheLevelInfo) {
-            .level = 1,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 16 * KiB,
-                .ways = 8,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0x61:
-        return (CacheLevelInfo) {
-            .level = UNDEF,
-                .cache_type = CPU_FEATURE_CACHE_TLB,
-                .cache_size = 4 * KiB,
-                .ways = 0xFF,
-                .line_size = UNDEF,
-                .tlb_entries = 48,
-                .partitioning = 0
-        };
-    case 0x63:
-        return (CacheLevelInfo) {
-            .level = UNDEF,
-                .cache_type = CPU_FEATURE_CACHE_TLB,
-                .cache_size = 2 * MiB,
-                .ways = 4,
-                .line_size = UNDEF,
-                .tlb_entries = 4,
-                .partitioning = 0
-        };
-    case 0x66:
-        return (CacheLevelInfo) {
-            .level = 1,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 8 * KiB,
-                .ways = 4,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0x67:
-        return (CacheLevelInfo) {
-            .level = 1,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 16 * KiB,
-                .ways = 4,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0x68:
-        return (CacheLevelInfo) {
-            .level = 1,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 32 * KiB,
-                .ways = 4,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0x70:
-        return (CacheLevelInfo) {
-            .level = 1,
-                .cache_type = CPU_FEATURE_CACHE_INSTRUCTION,
-                .cache_size = 12 * KiB,
-                .ways = 8,
-                .line_size = UNDEF,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0x71:
-        return (CacheLevelInfo) {
-            .level = 1,
-                .cache_type = CPU_FEATURE_CACHE_INSTRUCTION,
-                .cache_size = 16 * KiB,
-                .ways = 8,
-                .line_size = UNDEF,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0x72:
-        return (CacheLevelInfo) {
-            .level = 1,
-                .cache_type = CPU_FEATURE_CACHE_INSTRUCTION,
-                .cache_size = 32 * KiB,
-                .ways = 8,
-                .line_size = UNDEF,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0x76:
-        return (CacheLevelInfo) {
-            .level = UNDEF,
-                .cache_type = CPU_FEATURE_CACHE_TLB,
-                .cache_size = 2 * MiB,
-                .ways = 0xFF,
-                .line_size = UNDEF,
-                .tlb_entries = 8,
-                .partitioning = 0
-        };
-    case 0x78:
-        return (CacheLevelInfo) {
-            .level = 2,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 1 * MiB,
-                .ways = 4,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0x79:
-        return (CacheLevelInfo) {
-            .level = 2,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 128 * KiB,
-                .ways = 8,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 2
-        };
-    case 0x7A:
-        return (CacheLevelInfo) {
-            .level = 2,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 256 * KiB,
-                .ways = 8,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 2
-        };
-    case 0x7B:
-        return (CacheLevelInfo) {
-            .level = 2,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 512 * KiB,
-                .ways = 8,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 2
-        };
-    case 0x7C:
-        return (CacheLevelInfo) {
-            .level = 2,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 1 * MiB,
-                .ways = 8,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 2
-        };
-    case 0x7D:
-        return (CacheLevelInfo) {
-            .level = 2,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 2 * MiB,
-                .ways = 8,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0x7F:
-        return (CacheLevelInfo) {
-            .level = 2,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 512 * KiB,
-                .ways = 2,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0x80:
-        return (CacheLevelInfo) {
-            .level = 2,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 512 * KiB,
-                .ways = 8,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0x82:
-        return (CacheLevelInfo) {
-            .level = 2,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 256 * KiB,
-                .ways = 8,
-                .line_size = 32,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0x83:
-        return (CacheLevelInfo) {
-            .level = 2,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 512 * KiB,
-                .ways = 8,
-                .line_size = 32,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0x84:
-        return (CacheLevelInfo) {
-            .level = 2,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 1 * MiB,
-                .ways = 8,
-                .line_size = 32,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0x85:
-        return (CacheLevelInfo) {
-            .level = 2,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 2 * MiB,
-                .ways = 8,
-                .line_size = 32,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0x86:
-        return (CacheLevelInfo) {
-            .level = 2,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 512 * KiB,
-                .ways = 4,
-                .line_size = 32,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0x87:
-        return (CacheLevelInfo) {
-            .level = 2,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 1 * MiB,
-                .ways = 8,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0xA0:
-        return (CacheLevelInfo) {
-            .level = UNDEF,
-                .cache_type = CPU_FEATURE_CACHE_DTLB,
-                .cache_size = 4 * KiB,
-                .ways = 0xFF,
-                .line_size = UNDEF,
-                .tlb_entries = 32,
-                .partitioning = 0
-        };
-    case 0xB0:
-        return (CacheLevelInfo) {
-            .level = UNDEF,
-                .cache_type = CPU_FEATURE_CACHE_TLB,
-                .cache_size = 4 * KiB,
-                .ways = 4,
-                .line_size = UNDEF,
-                .tlb_entries = 128,
-                .partitioning = 0
-        };
-    case 0xB1:
-        return (CacheLevelInfo) {
-            .level = UNDEF,
-                .cache_type = CPU_FEATURE_CACHE_TLB,
-                .cache_size = 2 * MiB,
-                .ways = 4,
-                .line_size = UNDEF,
-                .tlb_entries = 8,
-                .partitioning = 0
-        };
-    case 0xB2:
-        return (CacheLevelInfo) {
-            .level = UNDEF,
-                .cache_type = CPU_FEATURE_CACHE_TLB,
-                .cache_size = 4 * KiB,
-                .ways = 4,
-                .line_size = UNDEF,
-                .tlb_entries = 64,
-                .partitioning = 0
-        };
-    case 0xB3:
-        return (CacheLevelInfo) {
-            .level = UNDEF,
-                .cache_type = CPU_FEATURE_CACHE_TLB,
-                .cache_size = 4 * KiB,
-                .ways = 4,
-                .line_size = UNDEF,
-                .tlb_entries = 128,
-                .partitioning = 0
-        };
-    case 0xB4:
-        return (CacheLevelInfo) {
-            .level = UNDEF,
-                .cache_type = CPU_FEATURE_CACHE_TLB,
-                .cache_size = 4 * KiB,
-                .ways = 4,
-                .line_size = UNDEF,
-                .tlb_entries = 256,
-                .partitioning = 0
-        };
-    case 0xB5:
-        return (CacheLevelInfo) {
-            .level = UNDEF,
-                .cache_type = CPU_FEATURE_CACHE_TLB,
-                .cache_size = 4 * KiB,
-                .ways = 8,
-                .line_size = UNDEF,
-                .tlb_entries = 64,
-                .partitioning = 0
-        };
-    case 0xB6:
-        return (CacheLevelInfo) {
-            .level = UNDEF,
-                .cache_type = CPU_FEATURE_CACHE_TLB,
-                .cache_size = 4 * KiB,
-                .ways = 8,
-                .line_size = UNDEF,
-                .tlb_entries = 128,
-                .partitioning = 0
-        };
-    case 0xBA:
-        return (CacheLevelInfo) {
-            .level = UNDEF,
-                .cache_type = CPU_FEATURE_CACHE_TLB,
-                .cache_size = 4 * KiB,
-                .ways = 4,
-                .line_size = UNDEF,
-                .tlb_entries = 64,
-                .partitioning = 0
-        };
-    case 0xC0:
-        return (CacheLevelInfo) {
-            .level = UNDEF,
-                .cache_type = CPU_FEATURE_CACHE_TLB,
-                .cache_size = 4 * KiB,
-                .ways = 4,
-                .line_size = UNDEF,
-                .tlb_entries = 8,
-                .partitioning = 0
-        };
-    case 0xC1:
-        return (CacheLevelInfo) {
-            .level = UNDEF,
-                .cache_type = CPU_FEATURE_CACHE_STLB,
-                .cache_size = 4 * KiB,
-                .ways = 8,
-                .line_size = UNDEF,
-                .tlb_entries = 1024,
-                .partitioning = 0
-        };
-    case 0xC2:
-        return (CacheLevelInfo) {
-            .level = UNDEF,
-                .cache_type = CPU_FEATURE_CACHE_DTLB,
-                .cache_size = 4 * KiB,
-                .ways = 4,
-                .line_size = UNDEF,
-                .tlb_entries = 16,
-                .partitioning = 0
-        };
-    case 0xC3:
-        return (CacheLevelInfo) {
-            .level = UNDEF,
-                .cache_type = CPU_FEATURE_CACHE_STLB,
-                .cache_size = 4 * KiB,
-                .ways = 6,
-                .line_size = UNDEF,
-                .tlb_entries = 1536,
-                .partitioning = 0
-        };
-    case 0xCA:
-        return (CacheLevelInfo) {
-            .level = UNDEF,
-                .cache_type = CPU_FEATURE_CACHE_STLB,
-                .cache_size = 4 * KiB,
-                .ways = 4,
-                .line_size = UNDEF,
-                .tlb_entries = 512,
-                .partitioning = 0
-        };
-    case 0xD0:
-        return (CacheLevelInfo) {
-            .level = 3,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 512 * KiB,
-                .ways = 4,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0xD1:
-        return (CacheLevelInfo) {
-            .level = 3,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 1 * MiB,
-                .ways = 4,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0xD2:
-        return (CacheLevelInfo) {
-            .level = 3,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 2 * MiB,
-                .ways = 4,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0xD6:
-        return (CacheLevelInfo) {
-            .level = 3,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 1 * MiB,
-                .ways = 8,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0xD7:
-        return (CacheLevelInfo) {
-            .level = 3,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 2 * MiB,
-                .ways = 8,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0xD8:
-        return (CacheLevelInfo) {
-            .level = 3,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 4 * MiB,
-                .ways = 8,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0xDC:
-        return (CacheLevelInfo) {
-            .level = 3,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 1 * 1536 * KiB,
-                .ways = 12,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0xDD:
-        return (CacheLevelInfo) {
-            .level = 3,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 3 * MiB,
-                .ways = 12,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0xDE:
-        return (CacheLevelInfo) {
-            .level = 3,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 6 * MiB,
-                .ways = 12,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0xE2:
-        return (CacheLevelInfo) {
-            .level = 3,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 2 * MiB,
-                .ways = 16,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0xE3:
-        return (CacheLevelInfo) {
-            .level = 3,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 4 * MiB,
-                .ways = 16,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0xE4:
-        return (CacheLevelInfo) {
-            .level = 3,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 8 * MiB,
-                .ways = 16,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0xEA:
-        return (CacheLevelInfo) {
-            .level = 3,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 12 * MiB,
-                .ways = 24,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0xEB:
-        return (CacheLevelInfo) {
-            .level = 3,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 18 * MiB,
-                .ways = 24,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0xEC:
-        return (CacheLevelInfo) {
-            .level = 3,
-                .cache_type = CPU_FEATURE_CACHE_DATA,
-                .cache_size = 24 * MiB,
-                .ways = 24,
-                .line_size = 64,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0xF0:
-        return (CacheLevelInfo) {
-            .level = UNDEF,
-                .cache_type = CPU_FEATURE_CACHE_PREFETCH,
-                .cache_size = 64 * KiB,
-                .ways = UNDEF,
-                .line_size = UNDEF,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0xF1:
-        return (CacheLevelInfo) {
-            .level = UNDEF,
-                .cache_type = CPU_FEATURE_CACHE_PREFETCH,
-                .cache_size = 128 * KiB,
-                .ways = UNDEF,
-                .line_size = UNDEF,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    case 0xFF:
-        return (CacheLevelInfo) {
-            .level = UNDEF,
-                .cache_type = CPU_FEATURE_CACHE_NULL,
-                .cache_size = UNDEF,
-                .ways = UNDEF,
-                .line_size = UNDEF,
-                .tlb_entries = UNDEF,
-                .partitioning = 0
-        };
-    default:
-        return EmptyCacheLevelInfo;
+FORCEINLINE 
+BOOLEAN 
+IsIntel(
+    _In_ CONST CPUINFO* CpuInfo
+)
+{
+    if( !CpuInfo )
+    {
+        return FALSE;
+    }
+
+    return memcmp(CpuInfo->Vendor, CPU_GENUINE_INTEL, 12) == 0;
+}
+
+FORCEINLINE
+BOOLEAN 
+IsAmd(
+    _In_ CONST CPUINFO* CpuInfo
+)
+{
+    if (!CpuInfo)
+    {
+        return FALSE;
+    }
+
+    return memcmp(CpuInfo->Vendor, CPU_AUTHENTIC_AMD, 12) == 0;
+}
+
+FORCEINLINE 
+VOID
+AddLevel(
+    _Inout_ PCPU_CACHE_INFO Info, 
+    _In_    CACHE_INFO Entry
+)
+{
+    if ( Info && Info->Size < CPU_MAX_CACHE_LEVEL )
+    {
+        Info->Levels[Info->Size++] = Entry;
     }
 }
 
-static void
-ParseIntelDeterministicTlb(_Out_ PCPU_CACHE_INFO CacheInfo, _In_ const CPUINFO* CpuInfo)
+STATIC 
+ULONG32 
+AmdAssocDecode(
+    ULONG32 Encoding
+)
 {
-    if (!CacheInfo || !CpuInfo) return;
-    if (CpuInfo->X86.MaxStandardFunction < 0x18) return;
-
-    for (uint32_t i = 0; CacheInfo->Size < CPU_MAX_CACHE_LEVEL; ++i)
+    switch (Encoding & 0xF)
     {
-        REGISTER_SET leaf = { 0 };
-        _scouse_cpuidex(0x18, i, leaf.Registers);
+        case 0x0: return 0;   // disabled
+        case 0x1: return 1;
+        case 0x2: return 2;
+        case 0x4: return 4;
+        case 0x6: return 8;
+        case 0x8: return 16;
+        case 0xA: return 32;
+        case 0xB: return 48;
+        case 0xC: return 64;
+        case 0xD: return 96;
+        case 0xE: return 128;
+        default:  return 0;   // reserved/unknown
+    }
+}
 
-        uint32_t type = leaf.Eax & 0x1F;
-        if (type == 0) return; // no more translation cache info :contentReference[oaicite:14]{index=14}
 
-        uint32_t level = (leaf.Eax >> 5) & 0x7;
+VOID
+ParseCacheInfo(
+    _Out_ PCPU_CACHE_INFO CacheInfo,
+    _In_  ULONG32 MaxLeaf,
+    _In_  ULONG32 LeafId
+)
+{
+    if (!CacheInfo) return;
 
-        uint32_t ways = (leaf.Ebx & 0xFFFF) + 1;
-        uint32_t parts = ((leaf.Ebx >> 16) & 0xFFFF) + 1;
-        uint32_t sets = leaf.Ecx + 1;
+    if (MaxLeaf < LeafId)
+    {
+        return;
+    }
 
-        uint32_t entries = ways * parts * sets; // leaf 0x18 defines entries derived from these :contentReference[oaicite:15]{index=15}
+    for (ULONG32 Sub = 0; CacheInfo->Size < CPU_MAX_CACHE_LEVEL; ++Sub)
+    {
+        REGISTER_SET Leaf = { 0 };
+        _scouse_cpuidex(LeafId, Sub, Leaf.Registers);
 
-        CacheInfo->Levels[CacheInfo->Size] = (CACHE_INFO){
-            .Level = (LONG32)level,
-            .CacheType = (type == 1) ? CPU_FEATURE_CACHE_DTLB :
-                         (type == 2) ? CPU_FEATURE_CACHE_STLB :
-                         (type == 3) ? CPU_FEATURE_CACHE_TLB : CPU_FEATURE_CACHE_TLB,
-            .Ways = (LONG32)ways,
-            .Partitioning = (LONG32)parts,
-            .TlbEntries = (LONG32)entries,
-            .LineSize = -1,       // not meaningful for TLB
-            .CacheSize = -1       // consider repurposing "CacheSize" to "PageSize" for TLB records if you want
-        };
+        ULONG32 Type = (Leaf.Eax & 0x1F);
+        if (Type == 0)
+        {
+            return;
+        }
 
-        CacheInfo->Size++;
+        CPU_CACHE_TYPE Ct = CPU_FEATURE_CACHE_NULL;
+
+        switch (Type)
+        {
+            case 1:
+                Ct = CPU_FEATURE_CACHE_DATA;
+                break;
+            case 2:
+                Ct = CPU_FEATURE_CACHE_INSTRUCTION;
+                break;
+            case 3:
+                Ct = CPU_FEATURE_CACHE_UNIFIED;
+                break;
+            default:
+                break;
+        }
+
+        ULONG32 Level = (Leaf.Eax >> 5) & 0x7;
+
+        ULONG32 LineSize = (Leaf.Ebx & 0xFFF) + 1;
+        ULONG32 Partitions = ((Leaf.Ebx >> 12) & 0x3FF) + 1;
+        ULONG32 Ways = ((Leaf.Ebx >> 22) & 0x3FF) + 1;
+        ULONG32 Sets = Leaf.Ecx + 1;
+
+        ULONG64 SizeBytes = (ULONG64)LineSize * (ULONG64)Partitions * (ULONG64)Ways * (ULONG64)Sets;
+
+        CACHE_INFO Out = { 0 };
+        Out.Level = (LONG32)Level;
+        Out.CacheType = Ct;
+        Out.LineSize = (LONG32)LineSize;
+        Out.Partitioning = (LONG32)Partitions;
+        Out.Ways = (LONG32)Ways;
+
+        Out.TlbEntries = (LONG32)Sets;
+
+        if (SizeBytes > 0x7FFFFFFF)
+        {
+            Out.CacheSize = -1;
+        }
+        else
+        {
+            Out.CacheSize = (LONG32)SizeBytes;
+        }
+
+        AddLevel(CacheInfo, Out);
+    }
+}
+
+#define CPU_MAX_CPUID_SUBLEAVES 32
+
+STATIC
+VOID
+ParseIntelLeaf18Tlb(
+    _Inout_ PCPU_CACHE_INFO CacheInfo,
+    _In_ CONST CPUINFO* CpuInfo
+)
+{
+    if (!CacheInfo || !CpuInfo)
+    {
+        return;
+    }
+
+    if (CpuInfo->X86.MaxStandardFunction < 0x18)
+    {
+        return;
+    }
+
+    REGISTER_SET Leaf0 = { 0 };
+    _scouse_cpuidex(0x18, 0, Leaf0.Registers);
+
+    if ((Leaf0.Eax | Leaf0.Ebx | Leaf0.Ecx | Leaf0.Edx) == 0)
+    {
+        return;
+    }
+
+    ULONG32 MaxSubleaf = Leaf0.Eax;
+
+    // Hard sanity cap.
+    if (MaxSubleaf > CPU_MAX_CPUID_SUBLEAVES)
+    {
+        MaxSubleaf = CPU_MAX_CPUID_SUBLEAVES;
+    }
+
+    // Start at 1, not 0.
+    for (ULONG32 Sub = 1;
+        Sub <= MaxSubleaf && CacheInfo->Size < CPU_MAX_CACHE_LEVEL;
+        ++Sub)
+    {
+        REGISTER_SET L = { 0 };
+        _scouse_cpuidex(0x18, Sub, L.Registers);
+
+        ULONG32 TlbType = (L.Edx & 0x1F);
+        if (TlbType == 0)
+        {
+            continue;
+        }
+
+        ULONG32 Level = (L.Edx >> 5) & 0x7;
+        ULONG32 FullyAssoc = (L.Edx >> 8) & 1;
+
+        ULONG32 PageMask = (L.Ebx & 0xF);
+        ULONG32 Partition = (L.Ebx >> 8) & 0x7;
+        ULONG32 Ways = (L.Ebx >> 16) & 0xFFFF;
+        ULONG32 Sets = L.Ecx;
+
+        if (Ways == 0 || Sets == 0)
+        {
+            continue;
+        }
+
+        ULONG64 Entries = (ULONG64)Ways * (ULONG64)Sets;
+        if (Entries > 0x7FFFFFFF)
+        {
+            Entries = 0x7FFFFFFF;
+        }
+
+        CPU_CACHE_TYPE Ct = CPU_FEATURE_CACHE_TLB;
+
+        switch (TlbType)
+        {
+        case 1:
+            Ct = CPU_FEATURE_CACHE_DTLB;
+            break;
+        case 2:
+            Ct = CPU_FEATURE_CACHE_TLB;
+            break;
+        case 3:
+            Ct = CPU_FEATURE_CACHE_TLB;
+            break;
+        case 4:
+        case 5:
+            Ct = CPU_FEATURE_CACHE_DTLB;
+            break;
+        default:
+            break;
+        }
+
+        CACHE_INFO Out = { 0 };
+        Out.Level = (LONG32)Level;
+        Out.CacheType = Ct;
+        Out.Ways = (LONG32)Ways;
+        Out.Partitioning = (LONG32)Partition;
+        Out.LineSize = (LONG32)PageMask;
+        Out.TlbEntries = (LONG32)Entries;
+        Out.CacheSize = -1;
+
+        (VOID)FullyAssoc;
+
+        AddLevel(CacheInfo, Out);
+    }
+}
+
+STATIC 
+VOID
+ParseAmdLegacyCachesTlbs(
+    _Inout_ PCPU_CACHE_INFO CacheInfo, 
+    _In_ CONST CPUINFO* CpuInfo
+)
+{
+    if (!CacheInfo || !CpuInfo)
+    {
+        return;
+    }
+
+    if (CpuInfo->X86.MaxExtendedFunction < 0x80000005)
+    {
+        return;
+    }
+
+    REGISTER_SET L5 = { 0 };
+    _scouse_cpuid(0x80000005, L5.Registers);
+
+    // L1 D-cache: ECX
+    {
+        ULONG32 Line = (L5.Ecx & 0xFF);
+        ULONG32 LinesPerTag = (L5.Ecx >> 8) & 0xFF;
+        ULONG32 Assoc = (L5.Ecx >> 16) & 0xFF;
+        ULONG32 SizeKB = (L5.Ecx >> 24) & 0xFF;
+
+        CACHE_INFO Out = { 0 };
+        Out.Level = 1;
+        Out.CacheType = CPU_FEATURE_CACHE_DATA;
+        Out.LineSize = (LONG32)Line;
+        Out.Partitioning = (LONG32)LinesPerTag;
+        Out.Ways = (LONG32)Assoc;
+        Out.CacheSize = (LONG32)(SizeKB * 1024);
+        Out.TlbEntries = -1;
+        AddLevel(CacheInfo, Out);
+    }
+
+    // L1 I-cache EDX
+    {
+        ULONG32 Line = (L5.Edx & 0xFF);
+        ULONG32 LinesPerTag = (L5.Edx >> 8) & 0xFF;
+        ULONG32 Assoc = (L5.Edx >> 16) & 0xFF;
+        ULONG32 SizeKB = (L5.Edx >> 24) & 0xFF;
+
+        CACHE_INFO Out = { 0 };
+        Out.Level = 1;
+        Out.CacheType = CPU_FEATURE_CACHE_INSTRUCTION;
+        Out.LineSize = (LONG32)Line;
+        Out.Partitioning = (LONG32)LinesPerTag;
+        Out.Ways = (LONG32)Assoc;
+        Out.CacheSize = (LONG32)(SizeKB * 1024);
+        Out.TlbEntries = -1;
+        AddLevel(CacheInfo, Out);
+    }
+
+    // L1 huge-page TLBs EAX (2M/4M pages)
+    {
+        ULONG32 ITlbEnt = (L5.Eax & 0xFF);
+        ULONG32 ITlbAssoc = (L5.Eax >> 8) & 0xFF;
+        ULONG32 DTlbEnt = (L5.Eax >> 16) & 0xFF;
+        ULONG32 DTlbAssoc = (L5.Eax >> 24) & 0xFF;
+
+        CACHE_INFO I = { 0 };
+        I.Level = 1;
+        I.CacheType = CPU_FEATURE_CACHE_TLB;   // instruction TLB
+        I.CacheSize = (LONG32)(2 * 1024 * 1024); // represent hugepage class
+        I.Ways = (LONG32)ITlbAssoc;
+        I.TlbEntries = (LONG32)ITlbEnt;
+        I.LineSize = -1;
+        AddLevel(CacheInfo, I);
+
+        CACHE_INFO D = { 0 };
+        D.Level = 1;
+        D.CacheType = CPU_FEATURE_CACHE_DTLB;
+        D.CacheSize = (LONG32)(2 * 1024 * 1024);
+        D.Ways = (LONG32)DTlbAssoc;
+        D.TlbEntries = (LONG32)DTlbEnt;
+        D.LineSize = -1;
+        AddLevel(CacheInfo, D);
+    }
+
+    // L1 4K TLBs EBX
+    {
+        ULONG32 ITlbEnt = (L5.Ebx & 0xFF);
+        ULONG32 ITlbAssoc = (L5.Ebx >> 8) & 0xFF;
+        ULONG32 DTlbEnt = (L5.Ebx >> 16) & 0xFF;
+        ULONG32 DTlbAssoc = (L5.Ebx >> 24) & 0xFF;
+
+        CACHE_INFO I = { 0 };
+        I.Level = 1;
+        I.CacheType = CPU_FEATURE_CACHE_TLB;
+        I.CacheSize = (LONG32)(4 * 1024);
+        I.Ways = (LONG32)ITlbAssoc;
+        I.TlbEntries = (LONG32)ITlbEnt;
+        I.LineSize = -1;
+        AddLevel(CacheInfo, I);
+
+        CACHE_INFO D = { 0 };
+        D.Level = 1;
+        D.CacheType = CPU_FEATURE_CACHE_DTLB;
+        D.CacheSize = (LONG32)(4 * 1024);
+        D.Ways = (LONG32)DTlbAssoc;
+        D.TlbEntries = (LONG32)DTlbEnt;
+        D.LineSize = -1;
+        AddLevel(CacheInfo, D);
+    }
+
+    // Leaf 80000006  L2 (ECX) and L3 (EDX) if present
+    if (CpuInfo->X86.MaxExtendedFunction >= 0x80000006 && CacheInfo->Size < CPU_MAX_CACHE_LEVEL)
+    {
+        REGISTER_SET L6 = { 0 };
+        _scouse_cpuid(0x80000006, L6.Registers);
+
+        // L2 in ECX line size bits 7:0, assoc bits 15:12, size KB bits 31:16
+        {
+            ULONG32 Line = (L6.Ecx & 0xFF);
+            ULONG32 AssocEnc = (L6.Ecx >> 12) & 0xF;
+            ULONG32 SizeKB = (L6.Ecx >> 16) & 0xFFFF;
+
+            CACHE_INFO Out = { 0 };
+            Out.Level = 2;
+            Out.CacheType = CPU_FEATURE_CACHE_UNIFIED;
+            Out.LineSize = (LONG32)Line;
+            Out.Ways = (LONG32)AmdAssocDecode(AssocEnc);
+            Out.CacheSize = (LONG32)(SizeKB * 1024);
+            Out.TlbEntries = -1;
+            Out.Partitioning = 0;
+            AddLevel(CacheInfo, Out);
+        }
+
+        // L3 in EDX size in 512KiB units + assoc/lines/line
+        {
+            ULONG32 L3SizeUnits = (L6.Edx >> 18) & 0x3FFF;   // 512KiB units
+            if (L3SizeUnits != 0)
+            {
+                ULONG32 Line = (L6.Edx & 0xFF);
+                ULONG32 LinesPerTag = (L6.Edx >> 8) & 0xF;
+                ULONG32 AssocEnc = (L6.Edx >> 12) & 0xF;
+
+                ULONG64 SizeBytes = (ULONG64)L3SizeUnits * 512ull * 1024ull;
+
+                CACHE_INFO Out = { 0 };
+                Out.Level = 3;
+                Out.CacheType = CPU_FEATURE_CACHE_UNIFIED;
+                Out.LineSize = (LONG32)Line;
+                Out.Partitioning = (LONG32)LinesPerTag;
+                Out.Ways = (LONG32)AmdAssocDecode(AssocEnc);
+                Out.TlbEntries = -1;
+                Out.CacheSize = (SizeBytes > 0x7FFFFFFF) ? -1 : (LONG32)SizeBytes;
+                AddLevel(CacheInfo, Out);
+            }
+        }
     }
 }
 
 VOID
 GetCacheInfo(
-	_Out_ PCPU_CACHE_INFO CacheInfo,
-	_In_  ULONG32    Index
+    _Out_ PCPU_CACHE_INFO CacheInfo,
+    _In_  ULONG32 Index
 )
 {
-    if ( !CacheInfo )
-	{
-		return;
-	}
+    (VOID)Index;
+
+    if (!CacheInfo)
+    {
+        return;
+    }
 
     CPUINFO CpuInfo = { 0 };
-	GetCpuInfo( &CpuInfo );
+    GetCpuInfo(&CpuInfo);
 
-	CacheInfo->Size = 0;
+    memset(CacheInfo, 0, sizeof(*CacheInfo));
 
-	if ( strstr( CpuInfo.Vendor, CPU_AUTHENTIC_AMD ) )
-	{
-		// max extended leaf, 0x8000001D
-		if( ( 1ll << 22 ) & CpuInfo.X86.Leaf80000001.Ecx )
-		{
-			ParseCacheInfo(CacheInfo, CpuInfo.X86.MaxExtendedFunction, 0x8000001D );
-		}
-	}
-    else if ( strstr( CpuInfo.Vendor, CPU_GENUINE_INTEL ) )
-	{
-		// max standard leaf, 0x00000004
-		REGISTER_SET Leaf = CpuInfo.X86.Leaf2;
+    if (IsAmd(&CpuInfo))
+    {
+        ParseAmdLegacyCachesTlbs(CacheInfo, &CpuInfo);
 
-		Leaf.Eax &= 0xFFFFFF00;
-
-		if( Leaf.Eax & ( 1ll << 31 ) )
-		{
-			Leaf.Eax = 0;
-		}
-		if( Leaf.Ebx & ( 1ll << 31 ) )
-		{
-			Leaf.Ebx = 0;
-		}
-		if( Leaf.Ecx & ( 1ll << 31 ) )
-		{
-			Leaf.Ecx = 0;
-		}
-		if( Leaf.Edx & ( 1ll << 31 ) ) 
-		{
-			Leaf.Edx = 0;
-		}
-
-		//todo - finish parsing leaf 2
-        BYTE Data[ 16 ];
-
-        static_assert(sizeof(REGISTER_SET) == sizeof(Data), "Leaf size mismatch!");
-
-        memcpy((PBYTE)Data, (PVOID)&Leaf, sizeof(Data));
-
-        for( ULONG32 Index = 0; Index < sizeof( Data ); ++Index )
+        // AMD uses leaf 0x8000001D with same format as Intel leaf 4
+        if (CpuInfo.X86.MaxExtendedFunction >= 0x8000001D)
         {
-            const BYTE CacheDescriptor = Data[ Index ];
-            if (CacheDescriptor == 0)
-            {
-                continue;
-            }
-
-            CacheLevelInfo Tmp = GetCacheLevelInfo(CacheDescriptor);
-
-            CacheInfo->Levels[CacheInfo->Size] = (CACHE_INFO){
-                    .Level = Tmp.level,
-                    .CacheSize = Tmp.cache_size,
-                    .CacheType = Tmp.cache_type,
-                    .Ways = Tmp.ways,
-                    .LineSize = Tmp.line_size,
-                    .TlbEntries = Tmp.tlb_entries,
-                    .Partitioning = Tmp.partitioning
-            };
-
-            CacheInfo->Size++;
+            ParseCacheInfo(CacheInfo, CpuInfo.X86.MaxExtendedFunction, 0x8000001D);
+        }
+    }
+    else if (IsIntel(&CpuInfo))
+    {
+        if ( CpuInfo.X86.MaxStandardFunction >= 0x18 )
+        {
+            // Deterministic TLB
+            ParseIntelLeaf18Tlb(CacheInfo, &CpuInfo);
         }
 
-        ParseIntelDeterministicTlb( CacheInfo, &CpuInfo );
-
-        ParseCacheInfo(CacheInfo, CpuInfo.X86.MaxStandardFunction, 0x00000004);
-	}
+        if ( CpuInfo.X86.MaxStandardFunction >= 0x04 )
+        {
+            // Deterministic caches
+            ParseCacheInfo(CacheInfo, CpuInfo.X86.MaxStandardFunction, 0x00000004);
+        }
+        //else
+        //{
+            // Legacy descriptors TLB/prefetch etc
+            // ParseIntelLeaf2Descriptors(CacheInfo, &CpuInfo); // wtf why does this fault?
+        //}
+    }
 }
 
-VOID
-ParseCacheInfo(
-	_Out_ PCPU_CACHE_INFO CacheInfo,
-	_In_ ULONG32 MaxLeaf,
-	_In_ ULONG32 LeafId
-)
-{
-
-	if (!CacheInfo)
-	{
-		return;
-	}
-
-	for( ULONG Index = 0; CacheInfo->Size < CPU_MAX_CACHE_LEVEL; ++Index )
-	{
-		REGISTER_SET Leaf = { 0 };
-        _scouse_cpuidex(LeafId, Index, Leaf.Registers);
-
-        switch (Leaf.Eax & 0x1F)
-		{
-			case 0:
-			{
-				return;
-			}
-			case 1:
-			{
-				CacheInfo->Levels[ CacheInfo->Size ].CacheType = CPU_FEATURE_CACHE_DATA;
-				break;
-			}
-			case 2:
-			{
-				CacheInfo->Levels[ CacheInfo->Size ].CacheType = CPU_FEATURE_CACHE_INSTRUCTION;
-				break;
-			}
-			case 3:
-			{
-				CacheInfo->Levels[ CacheInfo->Size ].CacheType = CPU_FEATURE_CACHE_UNIFIED;
-				break;
-			}
-			default:
-			{
-				CacheInfo->Levels[ CacheInfo->Size ].CacheType = CPU_FEATURE_CACHE_NULL;
-				break;
-			}
-		}
-
-        CacheInfo->Levels[ CacheInfo->Size ].Level		  = (LONG32)( ( Leaf.Eax >> 5 ) & 0x7 );
-		CacheInfo->Levels[ CacheInfo->Size ].LineSize	  = (LONG32)( ( Leaf.Ebx & 0xFFF ) + 1 );
-        CacheInfo->Levels[ CacheInfo->Size ].Ways		  = (LONG32)( ( ( Leaf.Ebx >> 22 ) & 0x3FF ) + 1 );
-		CacheInfo->Levels[ CacheInfo->Size ].Partitioning = (LONG32)( ( ( Leaf.Ebx >> 12 ) & 0x3FF ) + 1 );
-		CacheInfo->Levels[ CacheInfo->Size ].TlbEntries   = (LONG32)( Leaf.Ecx + 1 );
-		CacheInfo->Levels[ CacheInfo->Size ].CacheSize	  = (LONG32)( CacheInfo->Levels[ CacheInfo->Size ].TlbEntries  *
-																	  CacheInfo->Levels[ CacheInfo->Size ].Ways *
-																	  CacheInfo->Levels[ CacheInfo->Size ].Partitioning *
-																	  CacheInfo->Levels[ CacheInfo->Size ].LineSize );
-
-		++CacheInfo->Size;
-	}
-}

@@ -18,33 +18,21 @@
     <ClCompile Include="cpu\cpuinfo.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="paging.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="cpu\cpudata.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="cpu\cpuid.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="cpu\msr.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="cpu\msramd.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="cpu\msrintel.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="random.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="cpu\pmu\pmuamd.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cpu\pmu\pmuintel.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\scouse\archx64\intrinsics.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\scouse\archx64\cpu\cpuid.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\scouse\archx64\cpu\cpudata.h">
@@ -53,19 +41,16 @@
     <ClInclude Include="include\scouse\archx64\special.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\scouse\archx64\cpu\msr.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\scouse\archx64\cpu\msramd.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\scouse\archx64\cpu\msrintel.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\scouse\archx64\random.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\scouse\archx64\paging.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\scouse\archx64\cpu\pmu\pmuintel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\scouse\archx64\cpu\pmu\pmuamd.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

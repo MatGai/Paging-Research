@@ -1,5 +1,13 @@
 #include "filesystem.h"
 
+EFI_STATUS         FILE_SYSTEM_STATUS;
+
+static EFI_GUID           __FileSystemProtoclGUID__ = SIMPLE_FILE_SYSTEM_PROTOCOL;
+static PWSTR              CurrentDirectoryString;
+static EFI_FILE_PROTOCOL* CurrentDirectory;
+static EFI_HANDLE*        CurrentFileSystemHandle;
+static EFI_LOADED_IMAGE_PROTOCOL* LoadedImage;
+
 EFI_STATUS
 BLAPI
 BlInitFileSystem(
@@ -481,4 +489,503 @@ BlGetFileInfo(
     }
 
     return EFI_SUCCESS;
+}
+
+EFI_STATUS
+BLAPI
+BlOpenOrCreateLogFile(
+    _In_  PCWSTR Path,
+    _Out_ EFI_FILE_PROTOCOL** OutFile
+)
+{
+    EFI_STATUS Status;
+    EFI_FILE_PROTOCOL* Root = NULL;
+
+    if (!Path || !OutFile)
+    {
+        return EFI_INVALID_PARAMETER;
+    }
+
+    *OutFile = NULL;
+
+    Status = BlGetRootDirectory(&Root);
+    if (EFI_ERROR(Status))
+    {
+        return Status;
+    }
+
+    Status = Root->Open(
+        Root,
+        OutFile,
+        (CHAR16*)Path,
+        EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE | EFI_FILE_MODE_CREATE,
+        0
+    );
+
+    if (EFI_ERROR(Status))
+    {
+        return Status;
+    }
+
+    //
+    // Append at EOF.
+    //
+    Status = (*OutFile)->SetPosition(*OutFile, MAX_UINT64);
+    if (EFI_ERROR(Status))
+    {
+        (*OutFile)->Close(*OutFile);
+        *OutFile = NULL;
+        return Status;
+    }
+
+    return EFI_SUCCESS;
+}
+
+EFI_STATUS
+BLAPI
+BlWriteAscii(
+    _In_ EFI_FILE_PROTOCOL* File,
+    CONST VOID* Buffer,
+    _In_ UINTN Size
+)
+{
+    if (!File || (!Buffer && Size != 0))
+    {
+        return EFI_INVALID_PARAMETER;
+    }
+
+    return File->Write(File, &Size, (VOID*)Buffer);
+}
+
+EFI_STATUS
+BLAPI
+BlLogAscii(
+    _In_ EFI_FILE_PROTOCOL* File,
+    _In_ PCSTR Format,
+    ...
+)
+{
+    CHAR8 Buffer[512];
+    VA_LIST Args;
+    UINTN Length;
+
+    if (!File || !Format)
+    {
+        return EFI_INVALID_PARAMETER;
+    }
+
+    VA_START(Args, Format);
+    Length = AsciiVSPrint(Buffer, sizeof(Buffer), Format, Args);
+    VA_END(Args);
+
+    return BlWriteAscii(File, Buffer, Length);
+}
+
+EFI_STATUS
+BLAPI
+BlWriteBufferToNewFile(
+    _In_ PCWSTR Path,
+    CONST VOID* Buffer,
+    _In_ UINTN Size
+)
+{
+    EFI_STATUS Status;
+    EFI_FILE_PROTOCOL* Root = NULL;
+    EFI_FILE_PROTOCOL* Existing = NULL;
+    EFI_FILE_PROTOCOL* File = NULL;
+    UINTN WriteSize;
+
+    if (!Path || (!Buffer && Size != 0))
+    {
+        return EFI_INVALID_PARAMETER;
+    }
+
+    Status = BlGetRootDirectory(&Root);
+    if (EFI_ERROR(Status))
+    {
+        return Status;
+    }
+
+    //
+    // Try to delete an older file first so this acts like overwrite.
+    //
+    Status = Root->Open(
+        Root,
+        &Existing,
+        (CHAR16*)Path,
+        EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE,
+        0
+    );
+
+    if (!EFI_ERROR(Status) && Existing)
+    {
+        Existing->Delete(Existing);
+        Existing = NULL;
+    }
+
+    Status = Root->Open(
+        Root,
+        &File,
+        (CHAR16*)Path,
+        EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE | EFI_FILE_MODE_CREATE,
+        0
+    );
+
+    if (EFI_ERROR(Status))
+    {
+        return Status;
+    }
+
+    WriteSize = Size;
+    Status = File->Write(File, &WriteSize, (VOID*)Buffer);
+
+    File->Flush(File);
+    File->Close(File);
+
+    return Status;
+}
+
+EFI_STATUS
+BLAPI
+BlDumpMmuStressLogToFile(
+    _In_ PBOOT_INFO BootInfo,
+    _In_ PCWSTR Path
+)
+{
+    UINTN Size;
+
+    if (!BootInfo || !Path)
+    {
+        return EFI_INVALID_PARAMETER;
+    }
+
+    if (BootInfo->MmuStressLog.Length > BootInfo->MmuStressLog.Capacity)
+    {
+        return EFI_BAD_BUFFER_SIZE;
+    }
+
+    Size = (UINTN)BootInfo->MmuStressLog.Length;
+
+    return BlWriteBufferToNewFile(
+        Path,
+        BootInfo->MmuStressLog.Text,
+        Size
+    );
+}
+
+STATIC
+PCSTR
+BlCacheTypeStr(
+    CPU_CACHE_TYPE CacheType
+)
+{
+    switch (CacheType)
+    {
+    case CPU_FEATURE_CACHE_DATA:        return "Cache Data";
+    case CPU_FEATURE_CACHE_INSTRUCTION: return "Cache Inst";
+    case CPU_FEATURE_CACHE_UNIFIED:     return "Cache Unified";
+    case CPU_FEATURE_CACHE_TLB:         return "TLB";
+    case CPU_FEATURE_CACHE_DTLB:        return "DTLB";
+    case CPU_FEATURE_CACHE_STLB:        return "STLB";
+    case CPU_FEATURE_CACHE_PREFETCH:    return "PREF";
+    default:                            return "NULL";
+    }
+}
+
+STATIC
+EFI_STATUS
+BlCreateFreshFile(
+    _In_ PCWSTR Path,
+    _Out_ EFI_FILE_PROTOCOL** OutFile
+)
+{
+    EFI_STATUS Status;
+    EFI_FILE_PROTOCOL* Root = NULL;
+    EFI_FILE_PROTOCOL* Existing = NULL;
+
+    if (!Path || !OutFile)
+    {
+        return EFI_INVALID_PARAMETER;
+    }
+
+    *OutFile = NULL;
+
+    Status = BlGetRootDirectory(&Root);
+    if (EFI_ERROR(Status))
+    {
+        return Status;
+    }
+
+    //
+    // Delete old file if it exists so this behaves like overwrite.
+    //
+    Status = Root->Open(
+        Root,
+        &Existing,
+        (CHAR16*)Path,
+        EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE,
+        0
+    );
+
+    if (!EFI_ERROR(Status) && Existing)
+    {
+        Existing->Delete(Existing);
+        Existing = NULL;
+    }
+
+    Status = Root->Open(
+        Root,
+        OutFile,
+        (CHAR16*)Path,
+        EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE | EFI_FILE_MODE_CREATE,
+        0
+    );
+
+    return Status;
+}
+
+STATIC
+VOID
+BlGetCpuBrandString(
+     CHAR8 Brand[49]
+)
+{
+    REGISTER_SET Reg = { 0 };
+    ULONG32* Out;
+
+    if (!Brand)
+    {
+        return;
+    }
+
+    memset(Brand, 0, 49);
+
+    _scouse_cpuid(0x80000000, Reg.Registers);
+    if (Reg.Eax < 0x80000004)
+    {
+        return;
+    }
+
+    Out = (ULONG32*)Brand;
+
+    for (ULONG32 Leaf = 0x80000002; Leaf <= 0x80000004; ++Leaf)
+    {
+        _scouse_cpuid(Leaf, Reg.Registers);
+        *Out++ = Reg.Eax;
+        *Out++ = Reg.Ebx;
+        *Out++ = Reg.Ecx;
+        *Out++ = Reg.Edx;
+    }
+
+    Brand[48] = '\0';
+}
+
+STATIC
+EFI_STATUS
+BlWritePageMaskAscii(
+    _In_ EFI_FILE_PROTOCOL* File,
+    _In_ LONG32 Mask
+)
+{
+    EFI_STATUS Status;
+
+    if (!File)
+    {
+        return EFI_INVALID_PARAMETER;
+    }
+
+    if (Mask < 0)
+    {
+        return EFI_SUCCESS;
+    }
+
+    Status = BlLogAscii(File, "[");
+    if (EFI_ERROR(Status))
+    {
+        return Status;
+    }
+
+    if (Mask & 0x1)
+    {
+        Status = BlLogAscii(File, "4K ");
+        if (EFI_ERROR(Status))
+        {
+            return Status;
+        }
+    }
+
+    if (Mask & 0x2)
+    {
+        Status = BlLogAscii(File, "2M ");
+        if (EFI_ERROR(Status))
+        {
+            return Status;
+        }
+    }
+
+    if (Mask & 0x4)
+    {
+        Status = BlLogAscii(File, "4M ");
+        if (EFI_ERROR(Status))
+        {
+            return Status;
+        }
+    }
+
+    if (Mask & 0x8)
+    {
+        Status = BlLogAscii(File, "1G ");
+        if (EFI_ERROR(Status))
+        {
+            return Status;
+        }
+    }
+
+    return BlLogAscii(File, "]");
+}
+
+EFI_STATUS
+BLAPI
+BlDumpCpuAndMmuStressLogToFile(
+    _In_ PBOOT_INFO BootInfo,
+    _In_ PCWSTR Path
+)
+{
+    EFI_STATUS Status;
+    EFI_FILE_PROTOCOL* File = NULL;
+    CPUINFO CpuInfo = { 0 };
+    CPU_CACHE_INFO CacheInfo = { 0 };
+    CHAR8 Vendor[13] = { 0 };
+    CHAR8 Brand[49] = { 0 };
+
+    if (!BootInfo || !Path)
+    {
+        return EFI_INVALID_PARAMETER;
+    }
+
+    if (BootInfo->MmuStressLog.Length > BootInfo->MmuStressLog.Capacity)
+    {
+        return EFI_BAD_BUFFER_SIZE;
+    }
+
+    Status = BlCreateFreshFile(Path, &File);
+    if (EFI_ERROR(Status))
+    {
+        return Status;
+    }
+
+    GetCpuInfo(&CpuInfo);
+    memcpy(Vendor, CpuInfo.Vendor, 12);
+    Vendor[12] = '\0';
+
+    BlGetCpuBrandString(Brand);
+    GetCacheInfo(&CacheInfo, 0);
+
+    Status = BlLogAscii(File, "CPU Vendor: %a\n", Vendor);
+    if (EFI_ERROR(Status))
+    {
+        goto Cleanup;
+    }
+
+    Status = BlLogAscii(
+        File,
+        "CPU Brand : %a\n\n",
+        Brand[0] ? Brand : "Unknown"
+    );
+    if (EFI_ERROR(Status))
+    {
+        goto Cleanup;
+    }
+
+    Status = BlLogAscii(File, "CacheInfo: %d records\n", CacheInfo.Size);
+    if (EFI_ERROR(Status))
+    {
+        goto Cleanup;
+    }
+
+    for (LONG32 Index = 0; Index < CacheInfo.Size; ++Index)
+    {
+        CACHE_INFO* L = &CacheInfo.Levels[Index];
+
+        Status = BlLogAscii(
+            File,
+            "#%d  L%d  %a  Size=%d  Ways=%d  Part=%d  Line=%d  Entries/Sets=%d",
+            Index,
+            (LONG32)L->Level,
+            BlCacheTypeStr(L->CacheType),
+            (LONG32)L->CacheSize,
+            (LONG32)L->Ways,
+            (LONG32)L->Partitioning,
+            (LONG32)L->LineSize,
+            (LONG32)L->TlbEntries
+        );
+        if (EFI_ERROR(Status))
+        {
+            goto Cleanup;
+        }
+
+        if (L->CacheSize == -1 &&
+            (L->CacheType == CPU_FEATURE_CACHE_TLB ||
+                L->CacheType == CPU_FEATURE_CACHE_DTLB ||
+                L->CacheType == CPU_FEATURE_CACHE_STLB))
+        {
+            Status = BlLogAscii(File, " PageSizes=");
+            if (EFI_ERROR(Status))
+            {
+                goto Cleanup;
+            }
+
+            Status = BlWritePageMaskAscii(File, L->LineSize);
+            if (EFI_ERROR(Status))
+            {
+                goto Cleanup;
+            }
+        }
+
+        Status = BlLogAscii(File, "\n");
+        if (EFI_ERROR(Status))
+        {
+            goto Cleanup;
+        }
+    }
+
+    Status = BlLogAscii(
+        File,
+        "\nAddress spaces %Lx Count %Lu\n",
+        (UINT64)(UINTN)BootInfo->MmuStresserDescriptors.AddressSpaces,
+        (UINT64)BootInfo->MmuStresserDescriptors.AddressSpaceCount
+    );
+    if (EFI_ERROR(Status))
+    {
+        goto Cleanup;
+    }
+
+    Status = BlLogAscii(File, "\n==== MMU Stress Log ====\n");
+    if (EFI_ERROR(Status))
+    {
+        goto Cleanup;
+    }
+
+    if (BootInfo->MmuStressLog.Text && BootInfo->MmuStressLog.Length)
+    {
+        Status = BlWriteAscii(
+            File,
+            BootInfo->MmuStressLog.Text,
+            (UINTN)BootInfo->MmuStressLog.Length
+        );
+        if (EFI_ERROR(Status))
+        {
+            goto Cleanup;
+        }
+    }
+
+    Status = File->Flush(File);
+
+Cleanup:
+    if (File)
+    {
+        File->Close(File);
+    }
+
+    return Status;
 }

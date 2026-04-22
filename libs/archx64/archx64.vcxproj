@@ -28,22 +28,17 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="cpu\cpudata.c" />
-    <ClCompile Include="cpu\cpuid.c" />
     <ClCompile Include="cpu\cpuinfo.c" />
-    <ClCompile Include="cpu\msr.c" />
-    <ClCompile Include="cpu\msramd.c" />
-    <ClCompile Include="cpu\msrintel.c" />
+    <ClCompile Include="cpu\pmu\pmuamd.c" />
+    <ClCompile Include="cpu\pmu\pmuintel.c" />
     <ClCompile Include="random.c" />
-    <ClInclude Include="include\scouse\archx64\cpu\msrintel.h" />
-    <ClCompile Include="paging.c" />
+    <ClInclude Include="include\scouse\archx64\cpu\pmu\pmuintel.h" />
     <ClInclude Include="include\scouse\archx64\paging.h" />
     <ClInclude Include="include\scouse\archx64\random.h" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\scouse\archx64\cpu\cpudata.h" />
-    <ClInclude Include="include\scouse\archx64\cpu\cpuid.h" />
-    <ClInclude Include="include\scouse\archx64\cpu\msr.h" />
-    <ClInclude Include="include\scouse\archx64\cpu\msramd.h" />
+    <ClInclude Include="include\scouse\archx64\cpu\pmu\pmuamd.h" />
     <ClInclude Include="include\scouse\archx64\intrinsics.h" />
     <ClInclude Include="include\scouse\archx64\special.h" />
   </ItemGroup>
@@ -100,13 +95,12 @@
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v145</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
     <Import Project="$(VCTargetsPath)\BuildCustomizations\nasm.props" />
-    <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.props" />
   </ImportGroup>
   <ImportGroup Label="Shared">
   </ImportGroup>
@@ -133,6 +127,9 @@
     <OutDir>$(SolutionDir)out\$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='IDA|x64'">
+    <OutDir>$(SolutionDir)out\$(Platform)\$(Configuration)\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)out\$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -220,6 +217,7 @@
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <FunctionLevelLinking>true</FunctionLevelLinking>
+      <SupportJustMyCode>false</SupportJustMyCode>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -230,17 +228,23 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
+      <FunctionLevelLinking>false</FunctionLevelLinking>
+      <IntrinsicFunctions>false</IntrinsicFunctions>
+      <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
       <CompileAs>CompileAsC</CompileAs>
-      <AdditionalIncludeDirectories>$(SolutionDir)shared\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)shared\include;$(ProjectDir)include;$(SolutionDir)libs\runtime\include</AdditionalIncludeDirectories>
       <LanguageStandard_C>stdc11</LanguageStandard_C>
       <BufferSecurityCheck>false</BufferSecurityCheck>
+      <StringPooling>true</StringPooling>
+      <ExceptionHandling>false</ExceptionHandling>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <ControlFlowGuard>false</ControlFlowGuard>
+      <ProgramDataBaseFileName />
     </ClCompile>
     <Link>
       <SubSystem>
@@ -251,6 +255,5 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="$(VCTargetsPath)\BuildCustomizations\nasm.targets" />
-    <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.targets" />
   </ImportGroup>
 </Project>

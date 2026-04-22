@@ -1,17 +1,34 @@
-#ifndef TYPEDEFS_H	
-#define TYPEDEFS_H	
+#if !defined( SHRD_TYPEDEFS_H ) && !defined( _STDTYPES ) && !defined( _WINDEF_ ) && !defined( _NTDEF_ ) && !defined( _BASETSD_H_ )
+#define SHRD_TYPEDEFS_H	
 
 //
 // standard types and defines
 //
 
-#include <stdint.h>
-
+#define STATIC static
 #define CONST const
 #define CONSTEXPR constexpr
 #define VOLATILE volatile
 #define EXTERN extern
 
+#ifndef FORCEINLINE
+#define FORCEINLINE __forceinline
+#endif
+
+#if defined( __cplusplus )
+#define EXTERN_C extern "C"
+#else
+#define EXTERN_C extern
+#endif
+#define EXTERN extern
+#define VOLATILE volatile
+
+#define DLLEXPORT __declspec( dllexport )
+#define DLLIMPORT __declspec( dllimport )
+#define DECLSPEC_ALLOCATE( Name ) __declspec( allocate( Name ) )
+#ifndef DECLSPEC_NOINLINE
+#define DECLSPEC_NOINLINE __declspec( noinline )
+#endif
 
 typedef signed char INT8, * PINT8;
 typedef unsigned char UINT8, * PUINT8;
@@ -27,7 +44,6 @@ typedef char CHAR, *PCHAR, *PSTR;
 typedef CONST CHAR* LPCSTR, *PCSTR;
 
 typedef unsigned char BYTE, *PBYTE;
-
 
 typedef unsigned short WCHAR, *PWCHAR, *PWSTR;
 typedef CONST PWCHAR LPCWSTR, PCWSTR;
@@ -69,7 +85,7 @@ typedef void* PVOID;
 #define MAXLONG64   ((LONG64)(MAXULONG64 >> 1))
 #define MINLONG64   ((LONG64)~MAXLONG64)
 
-#ifndef _In_ 
+#ifndef _In_
 #define _In_
 #endif
 #ifndef _In_opt_
@@ -87,6 +103,9 @@ typedef void* PVOID;
 #ifndef _Out_opt_
 #define _Out_opt_
 #endif
+
+#define max( a, b ) ( ( ( a ) > ( b ) ) ? ( a ) : ( b ) )
+#define min( a, b ) ( ( ( a ) < ( b ) ) ? ( a ) : ( b ) )
 #define offsetof(type, member) ((unsigned long long) &(((type*)0)->member))
 
 #endif // !TYPEDEFS_H

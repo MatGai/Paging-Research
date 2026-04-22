@@ -81,6 +81,21 @@ extern "C" {
 		VOID
 	);
 
+	ULONG64
+	_scouse_rdtsc(
+		VOID
+	);
+
+	ULONG64
+	_scouse_rdtscp(
+		VOID
+	);
+
+	ULONG64
+	_scouse_readrsp(
+		VOID
+	);
+
 #ifdef __cplusplus
 }
 #endif

@@ -3,5 +3,7 @@
   <ItemGroup>
     <ClInclude Include="include\scouse\shared\cpuinfo.h" />
     <ClInclude Include="include\scouse\shared\typedefs.h" />
+    <ClInclude Include="include\scouse\shared\status.h" />
+    <ClInclude Include="include\scouse\shared\bootinfo.h" />
   </ItemGroup>
 </Project>

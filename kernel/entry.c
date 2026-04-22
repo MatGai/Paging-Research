@@ -1,259 +1,176 @@
-#include <scouse/archx64/cpu/msramd.h>
+#include <scouse/archx64/cpu/pmu/pmuintel.h>
+#include <scouse/archx64/cpu/cpudata.h>
+#include <scouse/archx64/intrinsics.h>
+#include <scouse/runtime/gfx/render.h>
+#include <scouse/runtime/print.h>
+#include <strser.h>
 #include <timer.h>
 
-typedef struct _EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL;
+STATIC 
+PCSTR 
+CacheTypeStr(
+    CPU_CACHE_TYPE CacheType
+)
+{
+    switch (CacheType)
+    {
+        case CPU_FEATURE_CACHE_DATA:        return "Cache Data";
+        case CPU_FEATURE_CACHE_INSTRUCTION: return "Cache Inst";
+        case CPU_FEATURE_CACHE_UNIFIED:     return "Cache Unfied";
+        case CPU_FEATURE_CACHE_TLB:         return "TLB";
+        case CPU_FEATURE_CACHE_DTLB:        return "DTLB";
+        case CPU_FEATURE_CACHE_STLB:        return "STLB";
+        case CPU_FEATURE_CACHE_PREFETCH:    return "PREF";
+        default:                            return "NULL";
+    }
+}
 
-typedef unsigned __int64(__cdecl* OutputString)(
-    EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL* This,
-    unsigned short* String
-    );
+STATIC 
+VOID 
+DumpPageMask(
+    LONG32 Mask
+)
+{
+    // bit0=4K, bit1=2M, bit2=4M, bit3=1G
+    if (Mask < 0)
+    {
+        return;
+    }
 
-typedef struct _EFI_SIMPLE_TEXT_OUTPUT_MODE {
-    __int32 MaxMode;
-    __int32 Mode;
-    __int32 Attribute;
-    __int32 CursorColumn;
-    __int32 CursorRow;
-    unsigned char CursorVisible;
-} EFI_SIMPLE_TEXT_OUTPUT_MODE;
+    printf("[");
+    if (Mask & 0x1) printf("4K ");
+    if (Mask & 0x2) printf("2M ");
+    if (Mask & 0x4) printf("4M ");
+    if (Mask & 0x8) printf("1G ");
+    printf("]");
+}
 
-typedef struct _EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL {
-    void* Reset;
-    OutputString Print;
-    void* TestString;
-
-    void* QueryMode;
-    void* SetMode;
-    void* SetAttribute;
-    void* ClearScreen;
-    void* SetCursorPosition;
-    void* EnableCursor;
-
-    EFI_SIMPLE_TEXT_OUTPUT_MODE* Mode;
-} EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL;
-
-typedef struct _BOOT_INFO {
-    unsigned __int64 DirectMapBase;
-    unsigned __int64 Pml4Physical;
-    unsigned __int64 PfnArrayPhysical;
-    unsigned __int64 PfnCount;
-    unsigned __int64 PfnFreeHead;
-} BOOT_INFO, * PBOOT_INFO;
-
-#include <stdint.h>
-
-#define TLBTEST_PAGE_SIZE      0x1000
-#define TLBTEST_NUM_PAGES      8192
-#define TLBTEST_ITERATIONS     0xFFFFFF
-
-
-// Page aligned buffer that we fill with jmps/ret.
-__declspec(align(TLBTEST_PAGE_SIZE))
-static unsigned char g_TlbJumpPages[TLBTEST_NUM_PAGES * TLBTEST_PAGE_SIZE];
-
-typedef void (*TLBTEST_STUB)(void);
-
-static __forceinline TLBTEST_STUB
-TlbTestGetStubInPage(
-    unsigned int pageIndex
-);
-
-static void
-ConOutPrintDecimal(
-    EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL* ConOut,
-    unsigned __int64 value
-);
-
-static void
-RunTlbJumpTest(
-    EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL* ConOut
-);
-
-//void
-//RunPmcSanityTest(EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL* ConOut);
-
-int KernelMain(
-    EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL* ConOut,
+LONG32 
+KernelMain(
     PBOOT_INFO BootInfo
 )
 {
-    ConOut->Print(ConOut, L"Hello from kernel buffer!\r\n");
+    SCSTATUS St;
 
-    ConOut->Print(ConOut, L"Pml4Physical.... ");
-    ConOutPrintDecimal( ConOut, BootInfo->Pml4Physical );
-    ConOut->Print(ConOut, L"\r\n");
+    St = RtGfxInitContext(&BootInfo->FrameBufferDescriptor);
+    if (SC_FAILED(St))
+    {
+        return St;
+    }
 
-    KrnlPagingInit(
-        BootInfo->DirectMapBase,
-        BootInfo->Pml4Physical,
-        BootInfo->PfnArrayPhysical,
-        BootInfo->PfnCount,
-        BootInfo->PfnFreeHead
+    RtGfxInitConsole();
+
+    printf(
+        "Hello Kernel\nResolution: %u x %u\n",
+        BootInfo->FrameBufferDescriptor.ResolutionWidth,
+        BootInfo->FrameBufferDescriptor.ResolutionHeight
     );
 
-    RunTlbJumpTest(ConOut);
-
-    return 1;
-}
-
-#include <intrin.h>
-
-#pragma intrinsic(__rdtsc)
-
-void
-__flushtlb(
-    void
-)
-{
-    unsigned __int64 cr3 = __readcr3();
-    __writecr3(cr3);
-}
-
-
-static __forceinline TLBTEST_STUB
-TlbTestGetStubInPage(
-    unsigned int PageIndex
-)
-{
-    unsigned char* base = g_TlbJumpPages + ((unsigned __int64)PageIndex * TLBTEST_PAGE_SIZE);
-    return (TLBTEST_STUB)base;
-}
-
-static void
-ConOutPrintDecimal(
-    EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL* ConOut,
-    unsigned __int64 value
-)
-{
-    unsigned short buf[32];  // enough for 20 digits + null
-    int pos = 31;
-
-    buf[pos] = L'\0'; // null-terminate
-
-    if (value == 0)
+    INTEL_MSR_PER_CORE_INFO PmuInfo = { 0 };
+    St = IntelPmuSupport(&PmuInfo);
+    if( SC_FAILED( St ) )
     {
-        buf[--pos] = L'0';
+        switch (St)
+        {
+            case SC_PMU_UNSUPPORTED:
+            {
+                printf("[ERROR] Pmu Unsupported %d\n", PmuInfo.Version);
+                break;
+            }
+            case SC_INVALID_PARAMETER:
+            {
+                printf("[ERROR] Invalid Paramter\n");
+                break;
+            }
+            case SC_UNSUPPORTED:
+            {
+                printf("[ERROR] Unsupported Pmu version %d\n", PmuInfo.Version);
+                break;
+            }
+        }
+        //return St;
     }
     else
     {
-        while (value > 0 && pos > 0)
+        printf(
+            "Pmu Info ->\n\tVersion %d, MsrCount %d, PmcBitWidth %d, FixedCount %d, FixedWith %d\n",
+            PmuInfo.Version, PmuInfo.MsrCount, PmuInfo.PmcBitWidth,
+            PmuInfo.FixedFunctionCount, PmuInfo.FixedFunctionBitWidth
+        );
+
+        ULONG64 ClockUnhalted = 0;
+        ULONG64 InstructionsRetired = 0;
+        PmuIntelCpuClockUnhaltedStartCounting();
+        PmuIntelInstructionsRetiredStartCounting();
+        
+        for (ULONG32 Index = 0; Index < PmuInfo.MsrCount; ++Index)
         {
-            unsigned __int64 q = value / 10;
-            unsigned __int64 r = value - q * 10; // value % 10 
-            value = q;
-            buf[--pos] = (unsigned short)(L'0' + (unsigned short)r);
+            printf(
+                "\tGP Counter %s",
+               IntelPerformanceMonitorEvents[ Index ]
+            );
+        
+            if (PmuInfo.SupportedEvents[Index] == EVENT_UNSUPPORTED)
+            {
+                printf(" (Unsupported)\n");
+            }
+            else
+            {
+                printf(" (Supported)\n");
+            }
         }
+        
+        PmuIntelCpuClockUnhaltedStopCounting(
+            &ClockUnhalted
+        );
+
+        PmuIntelInstructionsRetiredStopCounting(
+            &InstructionsRetired
+        );
+        
+        printf("Unhalted cycles: %llx , Instr Retired: %llx\n", ClockUnhalted, InstructionsRetired);
     }
 
-    ConOut->Print(ConOut, &buf[pos]);
-}
+    CPU_CACHE_INFO Info = { 0 };
+    GetCacheInfo(&Info, 0);
 
+    printf("CacheInfo: %d records\n", Info.Size);
 
-static TLBTEST_STUB gStubs[TLBTEST_NUM_PAGES];
+    for (LONG32 Index = 0; Index < Info.Size; ++Index)
+    {
+        CACHE_INFO* L = &Info.Levels[Index];
 
+        printf("#%d  L%d  %s  Size=%d  Ways=%d  Part=%d  Line=%d  Entries/Sets=%d ",
+            Index,
+            (LONG32)L->Level,
+            CacheTypeStr(L->CacheType),
+            (LONG32)L->CacheSize,
+            (LONG32)L->Ways,
+            (LONG32)L->Partitioning,
+            (LONG32)L->LineSize,
+            (LONG32)L->TlbEntries);
 
-void
-RunTlbJumpTest(
-    EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL* ConOut
-)
-{
-    unsigned int Index;
-    unsigned __int64 Start, End;
-    unsigned __int64 DeltaSamePage, DeltaCrossPage;
+        if (L->CacheSize == -1 &&
+            ( L->CacheType == CPU_FEATURE_CACHE_TLB  ||
+              L->CacheType == CPU_FEATURE_CACHE_DTLB ||
+              L->CacheType == CPU_FEATURE_CACHE_STLB
+            )
+           ) 
+        {
+            printf(" PageSizes=");
+            DumpPageMask(L->LineSize);
+        }
 
-    unsigned __int64 L1SameMisses = 2;
-    unsigned __int64 L2SameMisses = 2;
-    unsigned __int64 L1CrossMisses = 2;
-    unsigned __int64 L2CrossMisses = 2;
+        printf("\n");
+    }
     
-    ConOut->Print(ConOut, L"\r\n[TLB] Setting up jump pages...\r\n");
+    printf(
+        "Address spaces %p Count %llu\n",
+        BootInfo->MmuStresserDescriptors.AddressSpaces,
+        BootInfo->MmuStresserDescriptors.AddressSpaceCount
+    );
 
-    for (Index = 0; Index < TLBTEST_NUM_PAGES; ++Index)
-    {
-        unsigned char* p = (unsigned char*)TlbTestGetStubInPage(Index);
-        p[0] = 0xC3; // ret
-    }
+    MmuRunAllBenchmarks(BootInfo);
 
-    for (Index = 0; Index < TLBTEST_NUM_PAGES; ++Index)
-    {
-        TLBTEST_STUB Stub = TlbTestGetStubInPage(Index);
-        Stub();
-    }
-
-    for (Index = 0; Index < TLBTEST_NUM_PAGES; ++Index)
-    {
-        gStubs[Index] = TlbTestGetStubInPage(Index);
-    }
-
-    ConOut->Print(ConOut, L"[TLB] Same page jump test...\r\n");
-
-    /*__flushtlb();*/
-
-    AmdItlbMissStartCounting();
-
-    Start = TscStart();
-    for (Index = 0; Index < TLBTEST_ITERATIONS; ++Index)
-    {
-        gStubs[0]();
-    }
-    End = TscEnd();
-
-    AmdItlbMissStopCounting(&L1SameMisses, &L2SameMisses);
-
-    DeltaSamePage = End - Start;
-
-    ConOut->Print(ConOut, L"[TLB] Same page total cycles: ");
-    ConOutPrintDecimal(ConOut, DeltaSamePage);
-    ConOut->Print(ConOut, L"\r\n");
-
-    ConOut->Print(ConOut, L"[TLB] Same page cycles per call: ");
-    ConOutPrintDecimal(ConOut, DeltaSamePage / TLBTEST_ITERATIONS);
-    ConOut->Print(ConOut, L"\r\n");
-
-    ConOut->Print(ConOut, L"[TLB] Same page L1 ITLB misses: ");
-    ConOutPrintDecimal(ConOut, L1SameMisses);
-    ConOut->Print(ConOut, L"\r\n");
-
-    ConOut->Print(ConOut, L"[TLB] Same page L2 ITLB misses: ");
-    ConOutPrintDecimal(ConOut, L2SameMisses);
-    ConOut->Print(ConOut, L"\r\n");
-
-    ConOut->Print(ConOut, L"[TLB] Cross page jump test...\r\n");
-
-    /*__flushtlb();*/
-
-    AmdItlbMissStartCounting();
-
-    Start = TscStart();
-    unsigned int PageIndex = 0;
-
-    for (Index = 0; Index < TLBTEST_ITERATIONS; ++Index)
-    {
-        gStubs[PageIndex]();
-        PageIndex = (PageIndex + 1) & (TLBTEST_NUM_PAGES - 1);
-    }
-
-    End = TscEnd();
-
-    AmdItlbMissStopCounting(&L1CrossMisses, &L2CrossMisses);
-
-    DeltaCrossPage = End - Start;
-
-    ConOut->Print(ConOut, L"[TLB] Cross page total cycles: ");
-    ConOutPrintDecimal(ConOut, DeltaCrossPage);
-    ConOut->Print(ConOut, L"\r\n");
-
-    ConOut->Print(ConOut, L"[TLB] Cross page cycles per call: ");
-    ConOutPrintDecimal(ConOut, DeltaCrossPage / TLBTEST_ITERATIONS);
-    ConOut->Print(ConOut, L"\r\n");
-
-    ConOut->Print(ConOut, L"[TLB] Cross page L1 ITLB misses: ");
-    ConOutPrintDecimal(ConOut, L1CrossMisses);
-    ConOut->Print(ConOut, L"\r\n");
-
-    ConOut->Print(ConOut, L"[TLB] Cross page L2 ITLB misses: ");
-    ConOutPrintDecimal(ConOut, L2CrossMisses);
-    ConOut->Print(ConOut, L"\r\n");
-
-    ConOut->Print(ConOut, L"[TLB] Done.\r\n\r\n");
+    return 0;
 }

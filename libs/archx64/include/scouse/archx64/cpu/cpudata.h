@@ -2,6 +2,7 @@
 #define ARCHX64_CPUDATA_H
 
 #include <scouse/shared/typedefs.h>
+#include <scouse/archx64/paging.h>
 
 #define CPU_AUTHENTIC_AMD ( "AuthenticAMD" )
 #define CPU_GENUINE_INTEL ( "GenuineIntel" )
@@ -42,7 +43,7 @@ typedef struct _CACHE_INFO
 
 } CACHE_INFO, * PCACHE_INFO;
 
-#define CPU_MAX_CACHE_LEVEL ( 10 )
+#define CPU_MAX_CACHE_LEVEL ( 32 )
 
 typedef struct _CPU_CACHE_INFO
 {
