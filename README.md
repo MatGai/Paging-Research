@@ -13,4 +13,4 @@ UEFI was chosen as the environment for this project because it is close to the h
 It was chosen over legacy BOOT because of its usability and 'extensibility' ;) . In practice, it meant I could boot straight into an environment where alot was setup, such as file access and graphics output, which let me spend more time on the actual research rather than rebuilding basic infrastructure.
 
 
-<p>To add: this is my first somewhat large project. Expect some spaghetti and intresting design choices.</p>
+<p>To add: this is my first somewhat large project. Expect some spaghetti and interesting design choices.</p>
