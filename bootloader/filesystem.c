@@ -432,63 +432,64 @@ BlGetFileName(
     FreePool( FileInfo );
     return EFI_SUCCESS;
 }
-
 EFI_STATUS
 BlGetFileInfo(
-    _In_ EFI_FILE_HANDLE FileHandle,
+    _In_ EFI_FILE_HANDLE FileHandle, 
     _Inout_ EFI_FILE_INFO** FileInfo
-)
+) 
 {
-    if( FileHandle == NULL || FileInfo == NULL )
-    {
-        FILE_SYSTEM_STATUS = EFI_INVALID_PARAMETER;
+    
+    if (FileHandle == NULL || FileInfo == NULL) 
+    { 
+        FILE_SYSTEM_STATUS = EFI_INVALID_PARAMETER; 
         return FILE_SYSTEM_STATUS;
-    }
+    } 
 
     //
-    // allocate for sizeof( EFI_FILE_INFO ) + padding for file name size
+    // allocate for sizeof( EFI_FILE_INFO ) + padding for file name size 
     //
-    UINTN FileInfoInfoAllocSize = sizeof( EFI_FILE_INFO ) + 1024;
-    EFI_STATUS Result = gBS->AllocatePool( EfiBootServicesData, FileInfoInfoAllocSize, FileInfo );
-    if( EFI_ERROR( Result ) )
-    {
-        FILE_SYSTEM_STATUS = Result;
-        return FILE_SYSTEM_STATUS;
-    }
-
-    Result = FileHandle->GetInfo( FileHandle, &gEfiFileInfoGuid, &FileInfoInfoAllocSize, *FileInfo );
-    if( EFI_ERROR( Result ) )
-    {
+    UINTN FileInfoInfoAllocSize = sizeof( EFI_FILE_INFO ) + 1024; 
+    EFI_STATUS Result = gBS->AllocatePool( EfiBootServicesData, FileInfoInfoAllocSize, FileInfo ); 
+    
+    if ( EFI_ERROR( Result ) ) 
+    { 
+        FILE_SYSTEM_STATUS = Result; 
+        return FILE_SYSTEM_STATUS; 
+    } 
+    
+    Result = FileHandle->GetInfo( FileHandle, &gEfiFileInfoGuid, &FileInfoInfoAllocSize, *FileInfo ); 
+    if ( EFI_ERROR( Result ) ) 
+    { 
         //
         // if somehow file name size was > 1024 re allocate and try again
         //
-        if( Result == EFI_BUFFER_TOO_SMALL )
-        {
-            gBS->FreePool( *FileInfo );
+        if( Result == EFI_BUFFER_TOO_SMALL ) 
+        { 
+            gBS->FreePool( *FileInfo ); 
             Result = gBS->AllocatePool( EfiBootServicesData, FileInfoInfoAllocSize, FileInfo );
-            if( EFI_ERROR( Result ) )
-            {
-                FILE_SYSTEM_STATUS = Result;
-                return FILE_SYSTEM_STATUS;
-            }
-
-            Result = FileHandle->GetInfo( FileHandle, &gEfiFileInfoGuid, &FileInfoInfoAllocSize, *FileInfo );
-
-            if( EFI_ERROR( Result ) )
-            {
-                FILE_SYSTEM_STATUS = Result;
-                gBS->FreePool( *FileInfo );
-                return FILE_SYSTEM_STATUS;
-            }
-        }
-        else
-        {
+            if( EFI_ERROR( Result ) ) 
+            { 
+                FILE_SYSTEM_STATUS = Result; 
+                return FILE_SYSTEM_STATUS; 
+            } 
+            Result = FileHandle->GetInfo( FileHandle, &gEfiFileInfoGuid, &FileInfoInfoAllocSize, *FileInfo ); 
+            if( EFI_ERROR( Result ) ) 
+            { 
+                FILE_SYSTEM_STATUS = Result; 
+                gBS->FreePool( *FileInfo ); 
+                return FILE_SYSTEM_STATUS; 
+            } 
+        } 
+        else 
+        { 
             FILE_SYSTEM_STATUS = Result;
+            gBS->FreePool(*FileInfo);
+            *FileInfo = NULL;
             return FILE_SYSTEM_STATUS;
         }
-    }
-
-    return EFI_SUCCESS;
+    } 
+    
+    return EFI_SUCCESS; 
 }
 
 EFI_STATUS

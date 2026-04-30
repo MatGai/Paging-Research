@@ -11,7 +11,7 @@
 
 #define PERFORMANCE_MONITOR_EVENT_COUNT 8
 
-PCSTR IntelPerformanceMonitorEvents[];
+EXTERN PCSTR CONST IntelPerformanceMonitorEvents[];
 
 typedef enum _INTEL_PERFORMANCE_MONITOR_EVENT
 {
@@ -64,7 +64,7 @@ typedef struct _INTEL_MSR_PER_CORE_INFO
 #define INTEL_CPUID_FIXED_FUNCTION_BIT_WIDTH( Edx )      ( ( Edx >> 5 ) & 0xFF ) // [12:5]
 
 #define INTEL_CPUID_PERFORMANCE_MONITOR_EVENT_SUPPORT( Event, Ebx, Eax ) ( !((Ebx >> Event) & 0x1) && ( ( ( Eax >> 24 ) & 0x7F ) > Event ) )
-#define INTEL_CPUID_FIXCOUNTER_SUPPORT( Counter, Ecx, Edx )             ( ( Ecx >> Counter ) & 0x1 ) || ( ( Edx & 0x1F ) > Counter ) ) 
+#define INTEL_CPUID_FIXCOUNTER_SUPPORT( Counter, Ecx, Edx )              ( ( ( Ecx >> Counter ) & 0x1 ) || ( ( Edx & 0x1F ) > Counter ) ) 
 
 #define INTEL_MSR_IA32_PMC(Index)             (0x0C1u + (ULONG32)(Index))
 #define INTEL_MSR_IA32_PERFEVTSEL(Index)      (0x186u + (ULONG32)(Index)) 
@@ -89,7 +89,7 @@ typedef struct _INTEL_MSR_PER_CORE_INFO
 #define PMU_INTEL_OSUSER_OS   0x2
 #define PMU_INTEL_OSUSER_ALL  0x3
 
-INTEL_MSR_PER_CORE_INFO IntelPmuInfo;
+extern INTEL_MSR_PER_CORE_INFO IntelPmuInfo;
 
 /**
 * @brief Checks if the processor supports the PMU and returns the version number if it does.

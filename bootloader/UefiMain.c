@@ -201,7 +201,7 @@ UefiMain(
     {
         DBG_ERROR( PfnAlloc, L"Failed allocating pfn base\n" );
         getc( );
-        return 0;
+        return PfnAlloc;
     }
 
     SsPfn = ( PFN_ENTRY* )PfnBase;
@@ -482,13 +482,13 @@ InitalSetup(
     SCSTATUS St = BlGopInit();
     if (EFI_ERROR(St))
     {
-        DBG_ERROR(St, "Failed to set initialise GOP\n");
+        DBG_ERROR(St, L"Failed to set initialise GOP\n");
     }
 
     St = BlGopSetMode(0);
     if (EFI_ERROR(St))
     {
-        DBG_ERROR(St, "Failed to set gop mode to %d\n", 0);
+        DBG_ERROR(St, L"Failed to set gop mode to %d\n", 0);
     }
 
     DBG_INFO( L"handle-> %p\n", LoadedIamge->ImageBase );

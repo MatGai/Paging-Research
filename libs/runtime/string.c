@@ -8,52 +8,12 @@ memcpy(
     ULONG64 sz
 )
 {
-    PSTR destination  = (PSTR)dst;
-    PCSTR source = (PCSTR)src;
-    ULONG64 length = sz / sizeof( LONG32 );
+    UINT8* d = (UINT8*)dst;
+    CONST UINT8* s = (CONST UINT8*)src;
 
-    if( sz == 0 || dst == src )
+    while (sz--)
     {
-        return dst;
-    }
-
-    if( ( destination < source && destination + sz > source ) || 
-        ( source < destination && source + sz > destination ) )
-    {
-        return NULL;
-    }
-
-    // copy per byte until destination is aligned to LONG32
-    while (
-        sz > 0 && ( (ULONG64)destination & ( sizeof( LONG32 ) - 1 ) ) 
-        )
-    {
-        *destination++ = *source++;
-        sz--;
-    }
-
-
-    // copy per 4 bytes (LONG32) 
-    PLONG32 dword = (PLONG32)destination;
-    CONST PLONG32 sword = (CONST PLONG32)source;
-
-    for( ULONG64 i = 0; i < sz / sizeof( LONG32 ); i++ )
-    {
-        dword[i] = sword[i];
-    }
-    
-    ULONG32 v = sz % sizeof( LONG32 );
-
-    if (v != 0)
-    {
-        // copy remaining bytes
-        destination = (PSTR)&dword[sz / sizeof(LONG32)];
-        source = (PCSTR)&sword[sz / sizeof(LONG32)];
-
-        for (ULONG64 i = 0; i < v; i++)
-        {
-            destination[i] = source[i];
-        }
+        *d++ = *s++;
     }
 
     return dst;

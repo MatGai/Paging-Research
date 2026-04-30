@@ -40,23 +40,25 @@ getc(
     VOID
 )
 {
+    EFI_INPUT_KEY Key;
+
+    memset(&Key, 0, sizeof(Key));
+
 #ifndef _DEBUG_IDA
-    EFI_EVENT e[ 1 ];
+    EFI_EVENT Event[1];
+    UINTN Index = 0;
 
-    EFI_INPUT_KEY k;
-    memset( &k, 0, sizeof( EFI_INPUT_KEY ) );
+    Event[0] = gST->ConIn->WaitForKey;
 
-    e[ 0 ] = gST->ConIn->WaitForKey;
-    UINTN index = 0;
-    gBS->WaitForEvent( 1, e, &index );
+    gBS->WaitForEvent(1, Event, &Index);
 
-    if( !index )
+    if (Index == 0)
     {
-        gST->ConIn->ReadKeyStroke( gST->ConIn, &k );
+        gST->ConIn->ReadKeyStroke(gST->ConIn, &Key);
     }
-
-    return k;
 #endif
+
+    return Key;
 }
 
 INTN
@@ -184,16 +186,28 @@ strfmt(
 VOID
 AsciiToUnicode(
     _In_  CONST CHAR8* AsciiString,
-    _Out_ CHAR16* UnicodeString,
+    _Out_ CHAR16*      UnicodeString,
     _In_  ULONG64      UnicodeBufferSize  // number of CHAR16 elements
 )
 {
     ULONG64 i;
-    for( i = 0; i < UnicodeBufferSize - 1 && AsciiString[ i ] != '\0'; i++ )
+
+    if ( UnicodeBufferSize == 0 )
     {
-        UnicodeString[ i ] = ( CHAR16 )AsciiString[ i ];
+        return;
     }
-    UnicodeString[ i ] = '\0';
+
+    if ( AsciiString == NULL || UnicodeString == NULL )
+    {
+        return;
+    }
+
+    for ( i = 0; i + 1 < UnicodeBufferSize && AsciiString[i] != '\0'; i++ )
+    {
+        UnicodeString[i] = (CHAR16)(UINT8)AsciiString[ i ];
+    }
+
+    UnicodeString[i] = L'\0';
 }
 
 //char*

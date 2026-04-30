@@ -2,7 +2,7 @@
 #include <intrin.h>
 
 
-PCSTR IntelPerformanceMonitorEvents[] =
+PCSTR const IntelPerformanceMonitorEvents[] =
 {
     "CORE_CYCLES",
     "INSTRUCTION_RETIRED",

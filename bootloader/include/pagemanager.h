@@ -542,7 +542,8 @@ MmMapRangeEx(
     _In_ ULONG64 Size,
     _In_ ULONG64 Flags
 )
-{
+{ // this code has a major issue. When an error is encounted it immediatly returns. realistically this error should be handled properly, 
+  // and mapped pages/tables needed to be invalidated. 
     if (!Size)
     {
         return EFI_INVALID_PARAMETER;

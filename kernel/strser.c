@@ -19,12 +19,16 @@
 #pragma intrinsic(__rdtsc)
 #pragma intrinsic(__rdtscp)
 #pragma intrinsic(__readeflags)
+#pragma intrinsic(__readcr4)
+#pragma intrinsic(__writecr4)
 
 STATIC VOLATILE ULONG64 gPointerSink = 0;
 
 #define X86_CR0_CD (1ull << 30)
 #define X86_CR0_NW (1ull << 29)
 #define X86_EFLAGS_IF 0x200ULL
+#define X86_CR4_PGE (1ull << 7)
+
 
 STATIC
 FORCEINLINE
@@ -119,8 +123,19 @@ MmuFlushCurrentTlb(
     VOID
 )
 {
-    ULONG64 Cr3 = __readcr3();
-    __writecr3(Cr3);
+    ULONG64 Cr4 = __readcr4();
+
+    // also try to flush global entries
+    if (Cr4 & X86_CR4_PGE)
+    {
+        __writecr4(Cr4 & ~X86_CR4_PGE);
+        __writecr4(Cr4);
+    }
+    else
+    {
+        ULONG64 Cr3 = __readcr3();
+        __writecr3(Cr3);
+    }
 }
 
 STATIC

@@ -44,10 +44,11 @@ BlLdrLoadPEImageFile(
         return LastError;
     }
 
-    LastError = ImageFileHandle->Read( ImageFileHandle, &FileImageSize, FileImage );
-    if( EFI_ERROR( LastError ) )
+    LastError = ImageFileHandle->Read(ImageFileHandle, &FileImageSize, FileImage);
+    if (EFI_ERROR(LastError))
     {
-        ImageFileHandle->Close( ImageFileHandle );
+        gBS->FreePool(FileImage);
+        ImageFileHandle->Close(ImageFileHandle);
         return LastError;
     }
 

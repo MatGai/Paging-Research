@@ -11,7 +11,6 @@ RandomValue(
         return 0;
     }
 
-    ULONG64 End = (MAXULONG64 / Max) * Max;
     ULONG64 RandomValue = 0;
 
     if ( ( Max & ( Max - 1 ) ) == 0 ) 
@@ -28,12 +27,13 @@ RandomValue(
     }
 
    ULONG64 Threshold = (ULONG64)(0 - Max) % Max;
+    
 
     while (1)
     {
-        if (!_scouse_rdrand64_step(&RandomValue))
+        if (!_scouse_rdrand64_retry(&RandomValue, 10))
         {
-            continue;
+            return MAXULONG64;
         }
 
         ULONG64 High, Low;

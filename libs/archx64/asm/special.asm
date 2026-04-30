@@ -9,25 +9,26 @@
 	global _scouse_check_cpuid_support
 	_scouse_check_cpuid_support:
 
-		   pushfq    
-		   pop     rax     
-		   mov     rbx, rax		   ; store RFLAGS into RBX
-		   
-		   xor     rax, 1 << 21    ; toggle ID flag 
-		   push    rax     
-		   popfq                   ; set RFLAGS with new ID flag
+		pushfq
+		pop     rax                 ; rax = original RFLAGS
+		mov     rcx, rax             ; rcx = saved original RFLAGS, volatile register
 
-		   pushfq         
-		   pop     rax             ; get new RFLAGS into RAX
-		   xor     rax, rbx        
-		   and     rax, 1 << 21    ; check for any change in ID flag
-		   push    rbx
-		   popfq                   ; restore RFLAGS left from RBX
-		   
-		   shr	   rax, 21         ; move ID flag to bit 0
-		   and	   rax, 1          ; mask all other bits
+		xor     rax, 1 << 21         ; toggle ID bit
+		push    rax
+		popfq
 
-		   ret
+		pushfq
+		pop     rax                 ; rax = modified RFLAGS
+
+		xor     rax, rcx             ; changed bits
+		and     rax, 1 << 21         ; isolate ID bit change
+
+		push    rcx
+		popfq                       ; restore original RFLAGS
+
+		shr     rax, 21
+		and     rax, 1
+		ret
 
 
 	;
@@ -41,20 +42,15 @@
 	global _scouse_rdrand64_step
 	_scouse_rdrand64_step:
 
-		push rbx
+		rdrand  rax
+		jc      .success
 
-		rdrand rbx
-		jc .end 
-
-		xor rax, rax
-		pop rbx
+		xor     eax, eax
 		ret
 
-	.end: 
-
-		mov [rcx], rbx
-		mov rax, 1
-		pop rbx
+	.success:
+		mov     [rcx], rax
+		mov     eax, 1
 		ret
 
 	; 
@@ -69,35 +65,29 @@
 	global _scouse_rdrand64_retry
 	_scouse_rdrand64_retry:
 		
-		push rbx  
-		test rdx, rdx
-		inc rdx
-
-	.retry:
-		
 		;
 		; Call RDRAND instruction, which will store a random value in rbx.
 		; If the RDRAND instruction fails, the carry flag will be 0.
 		;
 
-		rdrand rbx
-		jc .end			; jumps to .end if carry flag is set   
+		test    rcx, rcx
+		jz      .fail
 
-		dec rdx
-		jnz .retry		; rdx should be signed otherwise this is weird
-		
-		;
-		; We have run out of tries, set return value to 0 and return 
-		;
+		inc     rdx                 ; attempts = retries + 1
+		jz      .fail               ; avoid max unsigned qword wrap to zero
 
-		xor rax, rax
-		pop rbx
+	.retry:
+		rdrand  rax
+		jc      .success
+
+		dec     rdx
+		jnz     .retry
+
+	.fail:
+		xor     eax, eax
 		ret
 
-	.end:
-		
-		mov [rcx], rbx
-		mov rax, 1
-		
-		pop rbx
+	.success:
+		mov     [rcx], rax
+		mov     eax, 1
 		ret
